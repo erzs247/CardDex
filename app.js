@@ -918,6 +918,8 @@ function setArt(code) {
 const artStyle = (code) => { const u = setArt(code); return u ? `style="--art:url('${esc(u)}')"` : ''; };
 // symbole et logo officiels de la série (TCGdex), masqués s'ils n'existent pas
 const setSymbol = (s) => (s.symbol ? `<img class="set-sym" src="${esc(s.symbol)}.webp" alt="" loading="lazy" onerror="this.remove()">` : '');
+// pastille claire de la série : son symbole officiel, sinon son code imprimé
+const setBadge = (s) => `<span class="set-code${s.symbol ? ' has-sym' : ''}">${setSymbol(s)}<em>${esc(s.print ?? s.code)}</em></span>`;
 const setLogo = (s) => { const u = s.logo?.[cardLang] ?? s.logo?.en ?? Object.values(s.logo ?? {})[0]; return u ? `<img class="set-logo" src="${esc(u)}.webp" alt="" onerror="this.remove()">` : ''; };
 function setHero(s) {
   const total = setTotal(s), own = ownedIn(s.code), p = total ? own / total : 0;
@@ -931,7 +933,7 @@ function progressRow(s) {
   const total = setTotal(s); const own = ownedIn(s.code);
   const p = total ? own / total : 0;
   return `<a class="set-row ${p >= 1 ? 'done' : ''}" href="#set-${esc(s.code)}" ${artStyle(s.code)}>
-    <div class="set-head">${setSymbol(s)}<span class="set-code">${esc(s.print ?? s.code)}</span><span class="set-name">${esc(setName(s))}</span>
+    <div class="set-head">${setBadge(s)}<span class="set-name">${esc(setName(s))}</span>
     <span class="set-count num">${own}<small>/${total}</small><b>${Math.floor(p * 100)} %</b></span></div>
     <div class="bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
   </a>`;
@@ -940,7 +942,7 @@ function progressTile(s) {
   const total = setTotal(s); const own = ownedIn(s.code);
   const p = total ? own / total : 0;
   return `<a class="set-tile ${p >= 1 ? 'done' : ''}" href="#set-${esc(s.code)}" ${artStyle(s.code)}>
-    <div class="set-head"><span class="set-code">${esc(s.print ?? s.code)}</span></div>
+    <div class="set-head">${setBadge(s)}</div>
     <span class="set-name">${esc(setName(s))}</span>
     <span class="big num">${Math.floor(p * 100)} %</span>
     <div class="bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>

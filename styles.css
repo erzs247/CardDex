@@ -1,22 +1,23 @@
 /* Mise en page : appli mobile à une colonne, barre d'onglets fixe en bas, fiche carte en panneau glissant.
-   Thème noir et rouge : fond noir, rouge vif en accent, formes arrondies. */
+   Thème bleu nuit : fond marine, bleu pervenche en accent, barres de progression magenta → bleu, formes arrondies. */
 :root {
   color-scheme: dark;
-  --bg: #0b0b0d;
-  --surface: #151518;
-  --surface-2: #1e1e23;
-  --line: #2d2d34;
-  --fg: #f4f4f6;
-  --muted: #9b9ba8;
-  --accent: #e3350d;      /* rouge Pokédex */
+  --bg: #0c1022;
+  --surface: #182038;
+  --surface-2: #1f2944;
+  --line: #2c3758;
+  --fg: #f3f5fb;
+  --muted: #9aa4c2;
+  --accent: #6f8fe6;      /* bleu pervenche */
   --accent-ink: #ffffff;
-  --gold: #ff5a3c;        /* rouge clair */
+  --gold: #3b82f6;        /* bleu vif (fin des barres) */
   --gold-ink: #ffffff;
-  --cyan: #ff6b57;        /* second rouge (dégradés) */
-  --hot: #e3350d;         /* coeur / souhaits */
+  --magenta: #b31fb8;     /* début des barres */
+  --cyan: #3b82f6;
+  --hot: #ff4f7b;         /* coeur / souhaits */
   --up: #3ddc84;
   --down: #ff5468;
-  --red-dark: #b3260a;
+  --red-dark: #4e6cc4;
   /* raretés (clés anglaises des données, voir RARITY_HEX dans app.js) */
   --r-common: #8e96b2;
   --r-uncommon: #6fd38a;
@@ -28,8 +29,8 @@
   --r-secret: #f5e50b;
   --r-iconic-secret: #ffd84a;
 
-  --font-display: "Fredoka", "Nunito", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Quicksand", "Nunito", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Quicksand", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   --gutter-l: max(16px, env(safe-area-inset-left, 0px));
   --gutter-r: max(16px, env(safe-area-inset-right, 0px));
@@ -1237,52 +1238,68 @@ button.deck-tile { text-align: left; width: 100%; }
 
 
 /* ==========================================================================
-   Thème noir et rouge (CardDex)
+   Thème bleu nuit (CardDex)
    ========================================================================== */
-body {
-  background:
-    radial-gradient(ellipse 120% 60% at 50% -10%, rgb(227 53 13 / .16), transparent 60%),
-    var(--bg);
-  background-attachment: fixed;
-}
-body::before { background: #000; }
+body { background: var(--bg); font-weight: 500; }
+body::before { background: var(--bg); }
 
-/* Barre du haut noire, filet rouge */
-.topbar { background: rgb(8 8 10 / .92); border-bottom: 2px solid var(--accent); margin-bottom: 14px; }
-.topbar h1 { color: #fff; }
+/* Barre du haut : sur le fond, grand titre */
+.topbar { background: color-mix(in srgb, var(--bg) 94%, transparent); border-bottom: 0; margin-bottom: 10px; min-height: 72px; }
+.topbar h1 { color: #fff; font-size: 34px; font-weight: 700; letter-spacing: 0; }
 .topbar .lang-btn { background: var(--surface); }
 
 /* tout arrondi */
 .seg button[aria-pressed="true"], .cta, .set-code, .title-code, .tabbar .tab-main { clip-path: none; }
-.seg { background: var(--surface); }
-.seg button[aria-pressed="true"] { border-radius: 11px; box-shadow: 0 4px 14px -4px rgb(227 53 13 / .7); }
-.cta { border-radius: 999px; box-shadow: 0 6px 18px -6px rgb(227 53 13 / .8); }
-.set-code { border-radius: 8px; background: var(--accent); color: #fff; }
-.title-code { border-radius: 6px; background: var(--accent); color: #fff; }
-.search { background: var(--surface); }
+.seg { background: linear-gradient(90deg, var(--surface), #0a0d1d); border-radius: 18px; }
+.seg button { font-weight: 600; }
+.seg button[aria-pressed="true"] { border-radius: 12px; background: var(--accent); color: #fff; box-shadow: none; }
+.cta { border-radius: 14px; background: var(--accent); color: #fff; box-shadow: none; }
+.search { background: #05060d; border-color: var(--line); border-radius: 16px; }
+.lang-btn span.on { background: var(--accent); color: #fff; }
 
-.block > summary { justify-content: flex-start; }
-.block > summary::before { content: ""; width: 10px; height: 10px; margin-right: 10px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
-.block > summary svg { margin-left: auto; }
-.bar > i { background: linear-gradient(90deg, var(--red-dark), var(--accent), var(--gold)); }
-.demo-banner { border-color: var(--accent); color: #ffb3a3; background: rgb(227 53 13 / .08); }
-.foil { background: linear-gradient(90deg, var(--red-dark), var(--accent), #ffb199); color: #fff; }
+/* pastille de série claire avec le symbole officiel */
+.set-code {
+  display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 4px 6px;
+  border-radius: 10px; background: #e4e7f0; color: #1a2140; border: 2px solid #c9cfdf;
+  font: 700 12px/1 var(--font-display); letter-spacing: .02em;
+}
+.set-code .set-sym { width: 28px; height: 28px; }
+.set-code.has-sym em { display: none; }
+.set-code em { font-style: normal; }
+.set-code:has(.set-sym) em { display: none; }
+.title-code { border-radius: 6px; background: #e4e7f0; color: #1a2140; }
 
-/* Barre d'onglets noire, bouton central rond rouge */
-.tabbar { background: rgb(8 8 10 / .95); border-top: 1px solid var(--line); }
+/* blocs de séries */
+.block { background: var(--surface); border-color: var(--line); border-radius: 18px; }
+.block > summary { font-weight: 700; }
+.set-name { font-weight: 600; }
+.set-count b { border-left-color: var(--fg); }
+
+/* barres de progression : piste claire, remplissage magenta → bleu */
+.bar { height: 12px; background: #dde1ea; }
+.bar > i { background: linear-gradient(90deg, var(--magenta), #6a4fe0 55%, var(--gold)); }
+.set-row .bar, .set-tile .bar, .set-hero .bar { background: #dde1ea; }
+
+.demo-banner { border-color: var(--accent); color: #c9d5ff; background: rgb(111 143 230 / .08); }
+.foil { background: linear-gradient(90deg, var(--magenta), var(--accent), #8fd3ff); color: #fff; }
+
+/* Barre d'onglets : fond sombre, bouton central rond et clair */
+.tabbar { background: #080b18; border-top: 1px solid var(--line); }
+.tabbar a { color: #e9ecf6; font-weight: 600; font-size: 13px; }
 .tabbar a[aria-current="page"] { color: #fff; }
-.tabbar a[aria-current="page"] svg { color: var(--accent); }
-.tabbar .tab-main { border-radius: 50%; margin-top: -22px; width: 60px; height: 60px; color: #fff; border: 3px solid var(--bg); box-shadow: 0 6px 20px -4px rgb(227 53 13 / .8); }
-.toast { background: var(--accent); color: #fff; border-radius: 999px; }
+.tabbar a[aria-current="page"] span { border-bottom: 2px solid #fff; }
+.tabbar .tab-main { border-radius: 50%; margin-top: -10px; width: 60px; height: 60px; background: #e4e8f8; color: #1a2140; border: 0; box-shadow: 0 6px 18px -6px rgb(0 0 0 / .6); }
+.toast { background: var(--accent); color: #fff; border-radius: 14px; }
 
-/* Ordinateur : barre latérale noire */
-:root[data-device="pc"] .tabbar { background: #08080a; border-right: 2px solid var(--accent); box-shadow: none; }
-:root[data-device="pc"] .tabbar .tab-main { box-shadow: none; border: 0; }
-:root[data-device="pc"] .tabbar a[aria-current="page"] { background: rgb(227 53 13 / .14); color: #fff; }
+/* Ordinateur : barre latérale marine */
+:root[data-device="pc"] .tabbar { background: #080b18; border-right: 1px solid var(--line); box-shadow: none; }
+:root[data-device="pc"] .tabbar .tab-main { box-shadow: none; background: none; color: #e9ecf6; }
+:root[data-device="pc"] .tabbar a[aria-current="page"] { background: var(--surface-2); color: #fff; }
+:root[data-device="pc"] .tabbar a[aria-current="page"] svg { color: var(--accent); }
 
-/* bandeaux illustrés (séries, listes) */
-.set-hero h2 { color: #fff; }
-.set-code + .set-name, .set-row .set-name { color: #fff; }
-.set-row:hover, .set-tile:hover, .list-card:hover { border-color: var(--accent); box-shadow: 0 6px 22px -8px rgb(227 53 13 / .7); }
-.set-row.done, .set-tile.done { border-color: var(--accent); box-shadow: 0 0 22px -6px var(--accent); }
+/* bandeaux illustrés (séries, listes) : l'illustration reste à droite */
+.set-hero h2, .set-row .set-name { color: #fff; }
+.set-row, .set-tile, .list-card { background: var(--surface-2); border-color: transparent; }
+.set-row:hover, .set-tile:hover, .list-card:hover { border-color: var(--accent); box-shadow: 0 6px 22px -10px rgb(111 143 230 / .7); }
+.set-row.done, .set-tile.done { border-color: var(--accent); box-shadow: 0 0 22px -8px var(--accent); }
 .list-desc { text-shadow: none; }
