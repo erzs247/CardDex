@@ -87,5 +87,7 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: .
+      - name: Laisser GitHub enregistrer l'archive
+        run: sleep 30
       - id: deploy
         uses: actions/deploy-pages@v4
