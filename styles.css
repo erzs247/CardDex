@@ -1,21 +1,21 @@
 /* Mise en page : appli mobile à une colonne, barre d'onglets fixe en bas, fiche carte en panneau glissant.
-   Thème clair « Pokédex » : barre rouge, fond blanc bleuté, touches de jaune et de bleu, formes arrondies. */
+   Thème noir et rouge : fond noir, rouge vif en accent, formes arrondies. */
 :root {
-  color-scheme: light;
-  --bg: #edf1f8;
-  --surface: #ffffff;
-  --surface-2: #e6ebf5;
-  --line: #d3dbea;
-  --fg: #1a2340;
-  --muted: #64708f;
+  color-scheme: dark;
+  --bg: #0b0b0d;
+  --surface: #151518;
+  --surface-2: #1e1e23;
+  --line: #2d2d34;
+  --fg: #f4f4f6;
+  --muted: #9b9ba8;
   --accent: #e3350d;      /* rouge Pokédex */
   --accent-ink: #ffffff;
-  --gold: #ffcb05;        /* jaune électrique */
-  --gold-ink: #3b2c00;
-  --cyan: #2a75bb;        /* bleu */
+  --gold: #ff5a3c;        /* rouge clair */
+  --gold-ink: #ffffff;
+  --cyan: #ff6b57;        /* second rouge (dégradés) */
   --hot: #e3350d;         /* coeur / souhaits */
-  --up: #16935a;
-  --down: #d32f45;
+  --up: #3ddc84;
+  --down: #ff5468;
   --red-dark: #b3260a;
   /* raretés (clés anglaises des données, voir RARITY_HEX dans app.js) */
   --r-common: #8e96b2;
@@ -1237,93 +1237,52 @@ button.deck-tile { text-align: left; width: 100%; }
 
 
 /* ==========================================================================
-   Thème Pokédex (CardDex) : remplace l'esprit néon de NightDex
+   Thème noir et rouge (CardDex)
    ========================================================================== */
 body {
   background:
-    radial-gradient(circle at 1px 1px, rgb(26 35 64 / .07) 1px, transparent 0) 0 0 / 18px 18px,
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgb(227 53 13 / .16), transparent 60%),
     var(--bg);
+  background-attachment: fixed;
 }
-body::before { background: var(--accent); }
+body::before { background: #000; }
 
-/* Barre du haut rouge, comme un Pokédex, avec une bande sombre et un voyant bleu */
-.topbar {
-  background: linear-gradient(180deg, var(--accent), var(--red-dark));
-  color: #fff; backdrop-filter: none;
-  border-bottom: 4px solid #1a2340;
-  box-shadow: 0 4px 0 rgb(26 35 64 / .12);
-  margin-bottom: 14px;
-}
-.topbar h1 { color: #fff; text-shadow: 0 2px 0 rgb(0 0 0 / .18); }
-.topbar .icon-btn, .topbar .icon-btn.on { color: #fff; }
-.topbar .icon-btn:hover { background: rgb(255 255 255 / .16); }
-.topbar .lang-btn { background: rgb(0 0 0 / .18); border-color: rgb(255 255 255 / .25); }
-.topbar .lang-btn span { color: rgb(255 255 255 / .8); }
-.topbar .lang-btn span.on { background: #fff; color: var(--accent); }
-.topbar .search { border-color: transparent; }
+/* Barre du haut noire, filet rouge */
+.topbar { background: rgb(8 8 10 / .92); border-bottom: 2px solid var(--accent); margin-bottom: 14px; }
+.topbar h1 { color: #fff; }
+.topbar .lang-btn { background: var(--surface); }
 
 /* tout arrondi */
 .seg button[aria-pressed="true"], .cta, .set-code, .title-code, .tabbar .tab-main { clip-path: none; }
-.seg { background: var(--surface); box-shadow: 0 2px 6px rgb(26 35 64 / .06); }
-.seg button[aria-pressed="true"] { border-radius: 11px; box-shadow: 0 2px 0 var(--red-dark); }
-.cta { border-radius: 999px; box-shadow: 0 3px 0 var(--red-dark); }
-.cta:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--red-dark); }
-.set-code { border-radius: 8px; background: var(--cyan); color: #fff; }
-.title-code { border-radius: 6px; background: var(--gold); color: var(--gold-ink); }
-.btn-ghost { box-shadow: 0 2px 0 var(--line); }
+.seg { background: var(--surface); }
+.seg button[aria-pressed="true"] { border-radius: 11px; box-shadow: 0 4px 14px -4px rgb(227 53 13 / .7); }
+.cta { border-radius: 999px; box-shadow: 0 6px 18px -6px rgb(227 53 13 / .8); }
+.set-code { border-radius: 8px; background: var(--accent); color: #fff; }
+.title-code { border-radius: 6px; background: var(--accent); color: #fff; }
+.search { background: var(--surface); }
 
-/* cartes et blocs : fond blanc, ombre douce */
-.block, .panel { box-shadow: 0 2px 10px rgb(26 35 64 / .07); border-color: var(--line); }
-.block > summary { color: var(--fg); }
-.block > summary::before {
-  content: ""; width: 14px; height: 14px; margin-right: 10px; flex: none; border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #fff 0 18%, var(--cyan) 22% 100%);
-  box-shadow: 0 0 0 3px #fff, 0 0 0 4px var(--line);
-}
 .block > summary { justify-content: flex-start; }
+.block > summary::before { content: ""; width: 10px; height: 10px; margin-right: 10px; flex: none; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 .block > summary svg { margin-left: auto; }
-.bar { background: var(--surface-2); }
-.bar > i { background: linear-gradient(90deg, var(--accent), var(--gold)); }
-.print, .sync.wait, .friends .panel h3 small b.pseudo, .lb-verify span b.num { color: var(--accent); }
-.demo-banner { background: #fff7d1; border-color: var(--gold); color: var(--gold-ink); }
-.foil { background: linear-gradient(90deg, var(--cyan), var(--gold), #ff6fae); color: #1a2340; }
+.bar > i { background: linear-gradient(90deg, var(--red-dark), var(--accent), var(--gold)); }
+.demo-banner { border-color: var(--accent); color: #ffb3a3; background: rgb(227 53 13 / .08); }
+.foil { background: linear-gradient(90deg, var(--red-dark), var(--accent), #ffb199); color: #fff; }
 
-/* Barre d'onglets blanche, bouton central rond (rouge et blanc) */
-.tabbar {
-  background: #fff; border-top: 0;
-  box-shadow: 0 -4px 18px rgb(26 35 64 / .10);
-}
-.tabbar a[aria-current="page"] { color: var(--accent); }
-.tabbar a[aria-current="page"] span { border-bottom-color: var(--accent); }
-.tabbar .tab-main {
-  border-radius: 50%; margin-top: -24px; width: 62px; height: 62px;
-  background: linear-gradient(180deg, var(--accent) 0 50%, #fff 50% 100%);
-  color: #1a2340; border: 4px solid #1a2340;
-  box-shadow: 0 4px 12px rgb(26 35 64 / .25);
-}
-.tabbar .tab-main svg { background: #fff; border-radius: 50%; padding: 4px; width: 30px; height: 30px; box-shadow: 0 0 0 3px #1a2340; }
-.toast { background: #1a2340; color: #fff; border-radius: 999px; }
+/* Barre d'onglets noire, bouton central rond rouge */
+.tabbar { background: rgb(8 8 10 / .95); border-top: 1px solid var(--line); }
+.tabbar a[aria-current="page"] { color: #fff; }
+.tabbar a[aria-current="page"] svg { color: var(--accent); }
+.tabbar .tab-main { border-radius: 50%; margin-top: -22px; width: 60px; height: 60px; color: #fff; border: 3px solid var(--bg); box-shadow: 0 6px 20px -4px rgb(227 53 13 / .8); }
+.toast { background: var(--accent); color: #fff; border-radius: 999px; }
 
-/* Ordinateur : barre latérale rouge */
-:root[data-device="pc"] .tabbar { background: linear-gradient(180deg, var(--accent), var(--red-dark)); border-right: 4px solid #1a2340; box-shadow: none; }
-:root[data-device="pc"] .tabbar .brand, :root[data-device="pc"] .tabbar a, :root[data-device="pc"] .tabbar .tab-main { color: rgb(255 255 255 / .85); }
-:root[data-device="pc"] .tabbar .tab-main svg { background: none; box-shadow: none; padding: 0; }
-:root[data-device="pc"] .tabbar a:hover { background: rgb(255 255 255 / .14); color: #fff; }
-:root[data-device="pc"] .tabbar a[aria-current="page"] { background: #fff; color: var(--accent); }
-:root[data-device="pc"] .tabbar a[aria-current="page"] svg { color: var(--accent); }
-:root[data-device="pc"] .topbar { border-radius: 0 0 18px 18px; }
+/* Ordinateur : barre latérale noire */
+:root[data-device="pc"] .tabbar { background: #08080a; border-right: 2px solid var(--accent); box-shadow: none; }
+:root[data-device="pc"] .tabbar .tab-main { box-shadow: none; border: 0; }
+:root[data-device="pc"] .tabbar a[aria-current="page"] { background: rgb(227 53 13 / .14); color: #fff; }
 
-/* versions claires des bandeaux illustrés (séries, listes, classeurs) */
-.set-hero h2, .set-hero-prog, .list-top h3, .list-prog, .bc-title strong, .set-row .set-name, .set-row .set-count {
-  color: var(--fg); text-shadow: 0 0 2px #fff, 0 0 10px #fff, 0 0 18px #fff;
-}
-.set-hero-prog b { color: var(--accent); }
-.set-hero::after { background: linear-gradient(90deg, rgb(255 255 255 / .96) 0%, rgb(255 255 255 / .7) 55%, rgb(255 255 255 / .2)), linear-gradient(0deg, #fff 0%, transparent 70%); }
-.set-hero { box-shadow: 0 2px 10px rgb(26 35 64 / .07); }
-.set-hero .bar, .set-row .bar, .set-tile .bar { background: var(--surface-2); }
-.set-row, .set-tile, .list-card { background: #fff; }
-.set-row::after, .set-tile::after { background: linear-gradient(90deg, #fff 32%, rgb(255 255 255 / .55) 75%, rgb(255 255 255 / .1)); }
-.list-card::after { background: linear-gradient(90deg, #fff 35%, rgb(255 255 255 / .5) 80%, transparent); }
-.set-row:hover, .set-tile:hover, .list-card:hover { border-color: var(--accent); box-shadow: 0 4px 14px rgb(227 53 13 / .15); }
-.set-row.done, .set-tile.done { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 4px 14px rgb(255 203 5 / .35); }
+/* bandeaux illustrés (séries, listes) */
+.set-hero h2 { color: #fff; }
+.set-code + .set-name, .set-row .set-name { color: #fff; }
+.set-row:hover, .set-tile:hover, .list-card:hover { border-color: var(--accent); box-shadow: 0 6px 22px -8px rgb(227 53 13 / .7); }
+.set-row.done, .set-tile.done { border-color: var(--accent); box-shadow: 0 0 22px -6px var(--accent); }
 .list-desc { text-shadow: none; }
