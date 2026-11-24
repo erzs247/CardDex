@@ -96,7 +96,11 @@ for (const lang of LANGS) {
     const known = sets.get(code);
     const total = brief.cardCount?.total ?? 0;
     const haveAll = known && (known.langTotals?.[lang] ?? -1) === total;
-    if (haveAll && !FULL) return;
+    // images publiées par TCGdex après la sortie de la série : on revérifie les séries récentes (moins d'un an)
+    // dont des cartes n'ont pas encore d'image dans cette édition
+    const recent = known?.releaseDate && Date.now() - Date.parse(known.releaseDate) < 365 * 864e5;
+    const missingImg = recent && [...cards.values()].some((c) => c.set === code && c.languages.includes(lang) && !c.img?.includes(lang));
+    if (haveAll && !missingImg && !FULL) return;
     const s = await get(`/${lang}/sets/${encodeURIComponent(brief.id)}`);
     if (!s || SKIP_SERIES.has(s.serie?.id)) return;
     const serieId = lang === 'ja' ? `J-${s.serie?.id}` : s.serie?.id;

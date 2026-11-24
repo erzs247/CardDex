@@ -809,6 +809,21 @@ function imageIn(c, l, hi = false) {
   return (l === 'en' && c.imageEn) || (l === 'ja' && c.imageJa) || c.image || null;
 }
 const imageOf = (c, hi = false) => imageIn(c, cardLang, hi);
+// Images de secours, essayées l'une après l'autre si la première ne charge pas :
+// les autres éditions de TCGdex, puis pokemontcg.io pour quelques séries anglaises sans images chez TCGdex.
+const PTCGIO = { 'sm3.5': 'sm35', 'sm7.5': 'sm75', 'swsh4.5sv': 'swsh45sv', swsh9tg: 'swsh9tg', swsh10tg: 'swsh10tg', swsh11tg: 'swsh11tg', swsh12tg: 'swsh12tg', 'swsh12.5gg': 'swsh12pt5gg', sve: 'sve' };
+function imageAlts(c, hi = false) {
+  if (isSealed(c) || !c.number) return [];
+  const st = setOf(c.set);
+  const out = [];
+  for (const l of ['en', 'fr', 'ja']) {
+    const path = c.imgPath?.[l] ?? (st?.path?.[l] ? `${st.path[l]}/${c.number}` : null);
+    if (path) out.push(`${IMG_BASE}/${l}/${path}/${hi ? 'high' : 'low'}.webp`);
+  }
+  const pt = PTCGIO[st?.tcgdex];
+  if (pt) out.push(`https://images.pokemontcg.io/${pt}/${String(c.number).replace(/^0+(?=\d)/, '')}${hi ? '_hires' : ''}.png`);
+  return out;
+}
 
 // Version autonome : images regroupées par série et par langue dans packs/<nom>.json (chargées à la demande)
 const packs = new Map();
@@ -831,12 +846,16 @@ function cardImg(card, eager = false, hi = false) {
     src = map?.[card.id] ?? ph;
     if (!map) { extra = ` data-pack="${esc(name)}" data-key="${esc(card.id)}"`; ensurePack(name); }
   }
+  const alts = imageAlts(card, hi).filter((u) => u !== src);
+  if (src === ph && alts.length) src = alts.shift();
+  if (alts.length) extra += ` data-alt="${esc(alts.join(' '))}"`;
   return `<img src="${esc(src)}" alt="${esc(cardName(card))}" ${eager ? '' : 'loading="lazy"'} decoding="async" data-ph="${esc(ph)}"${extra}>`;
 }
 // image en échec : un nouvel essai direct sur le serveur, puis le visuel de remplacement
 document.addEventListener('error', (e) => {
   const img = e.target;
   if (img.tagName !== 'IMG' || !img.dataset.ph || img.src === img.dataset.ph) return;
+  if (img.dataset.alt) { const [next, ...rest] = img.dataset.alt.split(' '); img.dataset.alt = rest.join(' '); if (!rest.length) delete img.dataset.alt; img.src = next; return; }
   if (!img.dataset.retried && !img.src.startsWith('data:')) {
     img.dataset.retried = '1';
     const u = new URL(img.src, location.href); u.searchParams.set('r', Date.now());
@@ -919,12 +938,13 @@ const artStyle = (code) => { const u = setArt(code); return u ? `style="--art:ur
 // symbole et logo officiels de la série (TCGdex), masqués s'ils n'existent pas
 const setSymbol = (s) => (s.symbol ? `<img class="set-sym" src="${esc(s.symbol)}.webp" alt="" loading="lazy" onerror="this.remove()">` : '');
 // pastille claire de la série : son symbole officiel, sinon son code imprimé
-const setBadge = (s) => `<span class="set-code${s.symbol ? ' has-sym' : ''}">${setSymbol(s)}<em>${esc(s.print ?? s.code)}</em></span>`;
+const setPrint = (s) => s.print ?? s.code.replace(/^J-/, '').replace(/^tk-/, 'TK ').toUpperCase().slice(0, 6);
+const setBadge = (s) => `<span class="set-code${s.symbol ? ' has-sym' : ''}">${setSymbol(s)}<em>${esc(setPrint(s))}</em></span>`;
 const setLogo = (s) => { const u = s.logo?.[cardLang] ?? s.logo?.en ?? Object.values(s.logo ?? {})[0]; return u ? `<img class="set-logo" src="${esc(u)}.webp" alt="" onerror="this.remove()">` : ''; };
 function setHero(s) {
   const total = setTotal(s), own = ownedIn(s.code), p = total ? own / total : 0;
   return `<div class="set-hero" ${artStyle(s.code)}>
-    <div class="set-hero-text">${setLogo(s)}<span class="title-code">${esc(s.print ?? s.code)}</span><h2>${esc(setName(s))}</h2>${s.releaseDate ? `<small>${fmt.date.format(parseDay(s.releaseDate))}</small>` : ''}</div>
+    <div class="set-hero-text">${setLogo(s)}<span class="title-code">${esc(setPrint(s))}</span><h2>${esc(setName(s))}</h2>${s.releaseDate ? `<small>${fmt.date.format(parseDay(s.releaseDate))}</small>` : ''}</div>
     <div class="set-hero-prog num"><b>${Math.floor(p * 100)} %</b><span>${own}/${total}</span></div>
     <div class="bar"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
   </div>`;
@@ -984,7 +1004,7 @@ function renderHome() {
   const q = homeQuery.trim().toLowerCase();
   const hidden = catalog.sets.filter((s) => (cardsBySet.get(s.code) ?? []).length && !setTotal(s)).length;
   const sets = [...catalog.sets]
-    .filter((s) => setTotal(s) > 0 || !(cardsBySet.get(s.code) ?? []).length)
+    .filter((s) => setTotal(s) > 0) // séries sans carte dans cette édition (ou encore vides chez TCGdex) : masquées
     .filter((s) => !q || [s.name, s.nameEn, s.nameJa, s.code, s.print].some((x) => String(x ?? '').toLowerCase().includes(q)))
     .sort((a, b) => String(b.releaseDate ?? '').localeCompare(String(a.releaseDate ?? '')) || (b.order ?? 0) - (a.order ?? 0));
   const groups = new Map();
@@ -1051,7 +1071,7 @@ function renderSet(code) {
   const full = all.reduce((a, c) => a + (price(c.id) ?? 0), 0);
   const isFiltered = user.prefs.own !== 'all' || user.prefs.rarity;
   setTopbar(`<a class="icon-btn" href="#home" aria-label="${L.back}">${I.back}</a>
-    <h1 class="small"><span class="title-code">${esc(s.print ?? s.code)}</span>${esc(setName(s))}</h1>
+    <h1 class="small"><span class="title-code">${esc(setPrint(s))}</span>${esc(setName(s))}</h1>
     <button class="icon-btn ${fav.has(code) ? 'on' : ''}" data-fav="${esc(code)}" aria-pressed="${fav.has(code)}" aria-label="${L.favSet}">${I.star}</button>
     <button class="icon-btn" data-action="cycle-sort" aria-label="${L.changeSort}">${I.sort}</button>
     <button class="icon-btn ${showFilters || isFiltered ? 'on' : ''}" data-action="filters" aria-label="${L.filters}" aria-expanded="${showFilters}">${I.filter}</button>`);
