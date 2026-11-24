@@ -221,7 +221,7 @@ const TEXT = {
       denied: 'Accès à la caméra refusé. Autorise-le dans les réglages du navigateur, ou choisis une photo de la carte.', noCamera: 'Pas de caméra disponible. Choisis plutôt une photo de la carte, bien cadrée.', indexErr: 'Impossible de charger le scanner. Vérifie ta connexion et réessaie.',
       unsure: 'Pas sûr à 100 % : vérifie que c\'est la bonne.', owned: (q) => `Tu en as déjà ${q}.`, versions: 'Autres versions de cette carte :', notIt: 'Ce n\'est pas elle ?',
       add: '+1 Je l\'ai', open: 'Voir la fiche', again: 'Rescanner', added: (q) => `Ajoutée : tu en as ${q}` },
-    inst: { title: 'Installe CardDex', pitch: 'Comme une vraie appli : icône sur ton écran, plein écran sans navigateur, et ça marche hors connexion.', btn: 'Installer', ios: 'Sur iPhone : touche Partager (le carré avec la flèche), puis « Sur l\'écran d\'accueil ».', done: 'CardDex est installée ! Ouvre-la depuis ton écran d\'accueil.' },
+    inst: { android: 'Ouvre le menu ⋮ de Chrome puis « Installer l\'application » (ou « Ajouter à l\'écran d\'accueil ») : CardDex s\'ouvre ensuite en plein écran comme une vraie appli.', title: 'Installe CardDex', pitch: 'Comme une vraie appli : icône sur ton écran, plein écran sans navigateur, et ça marche hors connexion.', btn: 'Installer', ios: 'Sur iPhone : touche Partager (le carré avec la flèche), puis « Sur l\'écran d\'accueil ».', done: 'CardDex est installée ! Ouvre-la depuis ton écran d\'accueil.' },
     crop: { titleAvatar: 'Recadrer la photo', titleBanner: 'Recadrer la bannière', zoom: 'Zoom', hint: 'Glisse pour déplacer l\'image, pince ou utilise le curseur pour zoomer.', cancel: 'Annuler', ok: 'Valider' },
     mod: {
       bannerAdd: 'Ajouter une bannière', bannerChange: 'Changer la bannière', bannerEmpty: 'Ta bannière de profil', bannerSaved: 'Bannière enregistrée', bannerRemoved: 'Bannière retirée',
@@ -459,7 +459,7 @@ const TEXT = {
       denied: 'Camera access denied. Allow it in your browser settings, or choose a photo of the card.', noCamera: 'No camera available. Choose a well-framed photo of the card instead.', indexErr: 'Could not load the scanner. Check your connection and try again.',
       unsure: 'Not 100 % sure: check it is the right one.', owned: (q) => `You already have ${q}.`, versions: 'Other versions of this card:', notIt: 'Not this one?',
       add: '+1 I have it', open: 'View card', again: 'Scan again', added: (q) => `Added: you have ${q}` },
-    inst: { title: 'Install CardDex', pitch: 'Like a real app: an icon on your screen, full screen without a browser, and it works offline.', btn: 'Install', ios: 'On iPhone: tap Share (the square with the arrow), then “Add to Home Screen”.', done: 'CardDex is installed! Open it from your home screen.' },
+    inst: { android: 'Open Chrome\'s ⋮ menu then “Install app” (or “Add to Home screen”): CardDex then opens full screen like a real app.', title: 'Install CardDex', pitch: 'Like a real app: an icon on your screen, full screen without a browser, and it works offline.', btn: 'Install', ios: 'On iPhone: tap Share (the square with the arrow), then “Add to Home Screen”.', done: 'CardDex is installed! Open it from your home screen.' },
     crop: { titleAvatar: 'Crop picture', titleBanner: 'Crop banner', zoom: 'Zoom', hint: 'Drag to move the image, pinch or use the slider to zoom.', cancel: 'Cancel', ok: 'Done' },
     mod: {
       bannerAdd: 'Add a banner', bannerChange: 'Change banner', bannerEmpty: 'Your profile banner', bannerSaved: 'Banner saved', bannerRemoved: 'Banner removed',
@@ -1498,7 +1498,7 @@ function openSettings() {
       <textarea id="exportBox" class="search" rows="4" hidden readonly></textarea>
     </div>
     <p class="note">${L.dataLine(catalog.cards.length, catalog.sets.length, priceFile.updatedAt ? fmt.date.format(parseDay(priceFile.updatedAt)) : '—')}</p>
-    ${canInstall() ? `<div class="panel"><h3>${L.inst.title}</h3><p class="note" style="margin:0">${installEvt ? L.inst.pitch : L.inst.ios}</p>${installEvt ? `<button class="cta" data-action="install">${L.inst.btn}</button>` : ''}</div>` : ''}
+    ${canInstall() ? `<div class="panel"><h3>${L.inst.title}</h3><p class="note" style="margin:0">${installHow()}</p>${installEvt ? `<button class="cta" data-action="install">${L.inst.btn}</button>` : ''}</div>` : ''}
     ${supportUrl() ? `<div class="support-row">${supportLink()}<span class="note">${L.supportHint}</span></div>` : ''}
     <p class="note">${L.disclaimer}</p>
     <button class="btn-ghost" data-action="close">${L.close}</button>
@@ -2350,7 +2350,9 @@ document.addEventListener('click', (e) => {
 let installEvt = null;
 const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const canInstall = () => !isStandalone() && (!!installEvt || isIOS());
+// proposé partout hors appli installée : bouton « Installer » si le navigateur le permet, sinon la marche à suivre
+const canInstall = () => !isStandalone();
+const installHow = () => (installEvt ? L.inst.pitch : isIOS() ? L.inst.ios : L.inst.android);
 const installDismissed = () => { try { return localStorage.getItem('carddex:installDismissed') === '1'; } catch { return false; } };
 addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (currentRender === renderHome) currentRender(); });
 addEventListener('appinstalled', () => { installEvt = null; document.getElementById('installBanner')?.remove(); toast(L.inst.done); });
@@ -2358,13 +2360,13 @@ function installBanner() {
   if (!canInstall() || installDismissed()) return '';
   return `<div class="install-banner" id="installBanner">
     <img src="icons/icon-192.png" alt="" width="44" height="44">
-    <div class="install-text"><strong>${L.inst.title}</strong><span>${installEvt ? L.inst.pitch : L.inst.ios}</span></div>
+    <div class="install-text"><strong>${L.inst.title}</strong><span>${installHow()}</span></div>
     ${installEvt ? `<button class="cta install-go" data-action="install">${L.inst.btn}</button>` : ''}
     <button class="icon-btn install-x" data-action="install-dismiss" aria-label="${L.close}">${I.x}</button>
   </div>`;
 }
 async function doInstall() {
-  if (!installEvt) { toast(L.inst.ios); return; }
+  if (!installEvt) { toast(installHow()); return; }
   installEvt.prompt();
   try { const r = await installEvt.userChoice; if (r.outcome === 'accepted') toast(L.inst.done); } catch { /* fermé */ }
   installEvt = null;
