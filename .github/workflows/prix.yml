@@ -1,0 +1,91 @@
+name: Prix Cardmarket, nouveautés et publication
+
+on:
+  schedule:
+    - cron: "17 6 * * *"   # chaque jour vers 7 h (heure de Paris en hiver) : prix du jour
+    - cron: "47 5 * * 1"   # chaque lundi vers 6 h 45 : nouvelles séries et cartes (TCGdex)
+  workflow_dispatch:
+    inputs:
+      nouveautes:
+        description: "Chercher aussi les nouvelles séries et cartes (TCGdex)"
+        type: boolean
+        default: false
+      complet:
+        description: "Tout revérifier (raretés, liens Cardmarket) : long"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  nouveautes:
+    # le lundi, à la demande, ou tant que la base est vide (premier lancement)
+    if: github.event.schedule == '47 5 * * 1' || inputs.nouveautes == true || inputs.complet == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Séries et cartes TCGdex (FR, EN, JP)
+        run: node scripts/import-tcgdex.mjs ${{ inputs.complet == true && '--full' || '' }}
+      - name: Empreintes du scanner (nouvelles cartes)
+        run: node scripts/make-scan-index.mjs || echo "Scanner : on continuera la semaine prochaine"
+      - name: Enregistrer les nouveautés
+        run: |
+          git config user.name "carddex-bot"
+          git config user.email "carddex-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Nouveautés du $(date +%F)"
+          git push
+
+  prix:
+    needs: [nouveautes]
+    if: always() && github.event_name != 'push' && needs.nouveautes.result != 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Relevé des prix Cardmarket du jour
+        run: node scripts/update-prices.mjs
+      - name: Enregistrer l'historique
+        run: |
+          git config user.name "carddex-bot"
+          git config user.email "carddex-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "Prix du $(date +%F)"
+          git push
+
+  publier:
+    needs: [prix]
+    if: always() && (needs.prix.result == 'success' || needs.prix.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deploy
+        uses: actions/deploy-pages@v4
