@@ -58,8 +58,7 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['name', 'legends', 'main', 'side', 'by', 'uid', 'at', 'v'])
         && request.resource.data.main is map;
       allow update: if signedIn() && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['name', 'legends', 'main', 'side', 'by', 'uid', 'at', 'v']);
+        && request.resource.data.uid == request.auth.uid;
       allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
 
@@ -105,9 +104,7 @@ service cloud.firestore {
       allow delete: if isMe(uid) || isAdmin();
       allow create, update: if isMe(uid)
         && get(/databases/$(database)/documents/supporters/$(uid)).data.active == true
-        && request.resource.data.keys().hasOnly(['avatar', 'banner', 'updatedAt'])
-        && (!('avatar' in request.resource.data) || (request.resource.data.avatar is string && request.resource.data.avatar.size() < 80000))
-        && (!('banner' in request.resource.data) || (request.resource.data.banner is string && request.resource.data.banner.size() < 200000));
+        && request.resource.data.keys().hasOnly(['avatar', 'banner', 'updatedAt']);
     }
 
     // pseudos uniques : handles/<pseudo> → { uid }
@@ -158,61 +155,27 @@ service cloud.firestore {
       allow read: if isMe(uid) || isFriendOf(uid);
       allow delete: if isMe(uid);
       allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['items', 'sales', 'paid', 'copies', 'alerts', 'wlists', 'proofs', 'cardProofs', 'binders', 'updatedAt'])
         && request.resource.data.items is list
-        && request.resource.data.items.size() <= 2000
-        && request.resource.data.sales is map;
+        && request.resource.data.items.size() <= 2000;
     }
     match /cdx_gphotos/{uid}/items/{g} {
       allow read: if isMe(uid) || isFriendOf(uid);
       allow delete: if isMe(uid);
       allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['img'])
         && request.resource.data.img is string
         && request.resource.data.img.size() < 400000;
-    }
-    match /cdx_decks/{uid} {
-      allow read: if isMe(uid) || isFriendOf(uid);
-      allow delete: if isMe(uid);
-      allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['list', 'gone', 'updatedAt'])
-        && request.resource.data.list is list
-        && request.resource.data.list.size() <= 300;
-    }
-    match /cdx_sharedDecks/{code} {
-      allow read: if signedIn();
-      allow create: if signedIn() && code.matches('^[A-Z0-9]{6}$')
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['name', 'legends', 'main', 'side', 'by', 'uid', 'at', 'v'])
-        && request.resource.data.main is map;
-      allow update: if signedIn() && resource.data.uid == request.auth.uid
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly(['name', 'legends', 'main', 'side', 'by', 'uid', 'at', 'v']);
-      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
     }
     match /cdx_leaderboard/{uid} {
       allow read: if signedIn();
       allow delete: if isMe(uid) || isAdmin();
-      allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['pseudo', 'cards', 'unique', 'value', 'sets', 'verified', 'vsets', 'updatedAt'])
-        && request.resource.data.pseudo == get(/databases/$(database)/documents/publicProfiles/$(uid)).data.pseudo
-        && request.resource.data.cards is int && request.resource.data.unique is int && request.resource.data.value is number
-        && request.resource.data.verified is list && request.resource.data.verified.size() <= 200
-        && request.resource.data.vsets == request.resource.data.verified.size();
+      allow create, update: if isMe(uid);
     }
-    match /cdx_proofs/{uid}/cards/{card} {
+    match /cdx_proofs/{uid}/{kind}/{id} {
       allow read: if signedIn();
       allow delete: if isMe(uid) || isAdmin();
       allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['img', 'card', 'at'])
-        && request.resource.data.img is string && request.resource.data.img.size() < 150000;
-    }
-    match /cdx_proofs/{uid}/sets/{code} {
-      allow read: if signedIn();
-      allow delete: if isMe(uid) || isAdmin();
-      allow create, update: if isMe(uid)
-        && request.resource.data.keys().hasOnly(['img', 'card', 'at'])
-        && request.resource.data.img is string && request.resource.data.img.size() < 150000;
+        && request.resource.data.img is string
+        && request.resource.data.img.size() < 150000;
     }
   }
 }
