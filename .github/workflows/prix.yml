@@ -42,7 +42,7 @@ jobs:
       - name: Séries et cartes TCGdex (FR, EN, JP)
         run: node scripts/import-tcgdex.mjs ${{ inputs.complet == true && '--full' || '' }}
       - name: Empreintes du scanner (nouvelles cartes)
-        run: node scripts/make-scan-index.mjs || echo "Scanner : on continuera la semaine prochaine"
+        run: node scripts/make-scan-index.mjs || echo "Scanner reporte a la semaine prochaine"
       - name: Enregistrer les nouveautés
         run: |
           git config user.name "carddex-bot"
