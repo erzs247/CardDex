@@ -1266,7 +1266,6 @@ body::before { background: var(--bg); }
 .set-code .set-sym { width: 28px; height: 28px; }
 .set-code.has-sym em { display: none; }
 .set-code em { font-style: normal; }
-.set-code:has(.set-sym) em { display: none; }
 .title-code { border-radius: 6px; background: #e4e7f0; color: #1a2140; }
 
 /* blocs de séries */

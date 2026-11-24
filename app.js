@@ -936,11 +936,13 @@ function setArt(code) {
 }
 const artStyle = (code) => { const u = setArt(code); return u ? `style="--art:url('${esc(u)}')"` : ''; };
 // symbole et logo officiels de la série (TCGdex), masqués s'ils n'existent pas
-const setSymbol = (s) => (s.symbol ? `<img class="set-sym" src="${esc(s.symbol)}.webp" alt="" loading="lazy" onerror="this.remove()">` : '');
+// symbole absent en .webp : essai en .png, sinon la pastille affiche le sigle de la série
+const SYM_ERR = "if(this.src.endsWith('.webp')){this.src=this.src.slice(0,-5)+'.png'}else{this.parentNode&&this.parentNode.classList.remove('has-sym');this.remove()}";
+const setSymbol = (s) => (s.symbol ? `<img class="set-sym" src="${esc(s.symbol)}.webp" alt="" loading="lazy" onerror="${SYM_ERR}">` : '');
 // pastille claire de la série : son symbole officiel, sinon son code imprimé
 const setPrint = (s) => s.print ?? s.code.replace(/^J-/, '').replace(/^tk-/, 'TK ').toUpperCase().slice(0, 6);
 const setBadge = (s) => `<span class="set-code${s.symbol ? ' has-sym' : ''}">${setSymbol(s)}<em>${esc(setPrint(s))}</em></span>`;
-const setLogo = (s) => { const u = s.logo?.[cardLang] ?? s.logo?.en ?? Object.values(s.logo ?? {})[0]; return u ? `<img class="set-logo" src="${esc(u)}.webp" alt="" onerror="this.remove()">` : ''; };
+const setLogo = (s) => { const u = s.logo?.[cardLang] ?? s.logo?.en ?? Object.values(s.logo ?? {})[0]; return u ? `<img class="set-logo" src="${esc(u)}.webp" alt="" onerror="if(this.src.endsWith('.webp')){this.src=this.src.slice(0,-5)+'.png'}else{this.remove()}">` : ''; };
 function setHero(s) {
   const total = setTotal(s), own = ownedIn(s.code), p = total ? own / total : 0;
   return `<div class="set-hero" ${artStyle(s.code)}>
