@@ -24,6 +24,9 @@ const LANG_EN = { fr: 'French', en: 'English', ja: 'Japanese' };
 // fonctions de NightDex mises en veille dans CardDex : créateur de decks (règles du Cyberpunk TCG, à refaire pour
 // le Pokémon : 60 cartes, 4 exemplaires max) et compagnon Capri
 const DECKS_ON = false;
+// Comptes : même projet Firebase que NightDex (même connexion, même pseudo, mêmes amis et photo de profil),
+// mais la collection, les gradées, les classements… de CardDex sont dans leurs propres collections « cdx_ ».
+const COL = { users: 'cdx_users', graded: 'cdx_graded', gphotos: 'cdx_gphotos', decks: 'cdx_decks', sharedDecks: 'cdx_sharedDecks', leaderboard: 'cdx_leaderboard', proofs: 'cdx_proofs' };
 const PET_ON = false;
 const nextLang = (l) => CARD_LANGS[(CARD_LANGS.indexOf(l) + 1) % CARD_LANGS.length];
 const TEXT = {
@@ -246,15 +249,15 @@ const TEXT = {
     capriFoot: 'Chatbot de fan non officiel · Capri © CD Projekt / Studio Trigger · réponses générées par Gemini (Google), elles peuvent contenir des erreurs.',
     capriErr: { busy: '*grésillement* Les serveurs de Gemini sont saturés en ce moment (beaucoup de monde). Réessaie dans une minute.', timeout: '*grésillement* Gemini ne répond pas pour l\'instant (trop lent). Réessaie dans un moment.', denied: 'Google refuse l\'accès pour l\'instant (autorisation de la clé du projet). Envoie le détail ci-dessous à ton développeur.', region: 'Gemini gratuit n\'est pas disponible depuis ta région.', notEnabled: 'Capri n\'est pas encore branchée : il faut activer « AI Logic » (Gemini Developer API) dans la console Firebase.', quota: '*grésillement* J\'ai trop parlé aujourd\'hui : la limite gratuite est atteinte. Réessaie plus tard.', offline: 'Pas de connexion internet : je ne capte plus rien, choom.', model: 'Aucun modèle Gemini disponible pour l\'instant. Réessaie plus tard.', blocked: '*grésillement* Ce sujet-là, mes circuits refusent d\'y aller. Demande-moi autre chose.', other: '*grésillement* La liaison a sauté. Réessaie dans un instant.' },
     account: 'Mon compte', accountShort: 'Compte',
-    accountPitch: 'Connecte-toi pour retrouver ta collection, tes souhaits et tes séries favorites sur tous tes appareils. Sans compte, elles restent enregistrées sur ce téléphone.',
+    accountPitch: 'Connecte-toi pour retrouver ta collection, tes souhaits et tes séries favorites sur tous tes appareils. C\'est le même compte que NightDex (même pseudo, mêmes amis), avec une collection Pokémon à part. Sans compte, tout reste enregistré sur ce téléphone.',
     google: 'Continuer avec Google', or: 'ou', email: 'Adresse e-mail', password: 'Mot de passe (6 caractères minimum)',
     signIn: 'Se connecter', signUp: 'Créer un compte', forgot: 'Mot de passe oublié ?', resetSent: 'E-mail de réinitialisation envoyé',
     signedAs: (e) => `Connecté : ${e}`, signOut: 'Se déconnecter', signedOut: 'Déconnecté. Ta collection reste sur ce téléphone.',
     welcome: 'Connecté : ta collection est synchronisée',
     syncOk: (t) => `Collection synchronisée${t ? ` · ${t}` : ''}`, syncing: 'Synchronisation…', syncErr: 'Synchronisation impossible pour le moment. Tes changements sont gardés sur ce téléphone et seront envoyés plus tard.',
     syncInfo: (n, w) => `${n} ${plural(n, 'carte ou produit possédé', 'cartes et produits possédés')}, ${w} ${plural(w, 'souhait', 'souhaits')} : enregistrés sur ton compte.`,
-    deleteAcc: 'Supprimer mon compte', deleteConfirm: 'Confirmer la suppression définitive', deleteNote: 'Supprime ton compte et la copie en ligne de ta collection. La collection reste sur ce téléphone.',
-    deleted: 'Compte supprimé',
+    deleteAcc: 'Supprimer mes données CardDex', deleteConfirm: 'Confirmer (ton compte NightDex reste intact)', deleteNote: 'Supprime la copie en ligne de ta collection CardDex. Ton compte, ton pseudo et ta collection NightDex ne sont pas touchés, et la collection reste sur ce téléphone.',
+    deleted: 'Données CardDex supprimées',
     authErr: { 'auth/invalid-email': 'Adresse e-mail invalide.', 'auth/missing-password': 'Indique un mot de passe.', 'auth/weak-password': 'Mot de passe trop court : 6 caractères minimum.', 'auth/email-already-in-use': 'Un compte existe déjà avec cette adresse : connecte-toi.', 'auth/invalid-credential': 'E-mail ou mot de passe incorrect.', 'auth/wrong-password': 'E-mail ou mot de passe incorrect.', 'auth/user-not-found': 'Aucun compte avec cette adresse.', 'auth/too-many-requests': 'Trop d\'essais : réessaie dans quelques minutes.', 'auth/network-request-failed': 'Pas de connexion internet.', 'auth/requires-recent-login': 'Par sécurité, déconnecte-toi puis reconnecte-toi avant de supprimer ton compte.', 'auth/unauthorized-domain': 'Ce site n\'est pas encore autorisé dans Firebase (domaines autorisés).', default: 'Une erreur est survenue, réessaie.' },
     disclaimer: 'CardDex est une appli de fan non officielle, sans lien avec Nintendo, Creatures, GAME FREAK ni The Pokémon Company. Pokémon et les noms des personnages sont des marques de Nintendo ; les images des cartes appartiennent à leurs ayants droit. Base de cartes et images : TCGdex (tcgdex.net). Prix : Cardmarket (tendance, mis à jour chaque jour).',
     storage: (n, w) => `Votre collection est enregistrée sur cet appareil (${n} cartes possédées, ${w} souhaits). Exportez-la pour la sauvegarder ou la transférer sur un autre téléphone.`,
@@ -484,15 +487,15 @@ const TEXT = {
     capriFoot: 'Unofficial fan chatbot · Capri © CD Projekt / Studio Trigger · answers generated by Gemini (Google), they may contain mistakes.',
     capriErr: { busy: '*static* Gemini\'s servers are overloaded right now. Try again in a minute.', timeout: '*static* Gemini is not answering right now (too slow). Try again in a moment.', denied: 'Google is refusing access for now (project key permissions). Send the detail below to your developer.', region: 'Free Gemini is not available from your region.', notEnabled: 'Capri is not connected yet: enable “AI Logic” (Gemini Developer API) in the Firebase console.', quota: '*static* I talked too much today: the free limit is reached. Try again later.', offline: 'No internet connection: I can\'t hear a thing, choom.', model: 'No Gemini model available right now. Try again later.', blocked: '*static* My circuits refuse to go there. Ask me something else.', other: '*static* The link dropped. Try again in a moment.' },
     account: 'My account', accountShort: 'Account',
-    accountPitch: 'Sign in to find your collection, wishlist and favourite sets on all your devices. Without an account, they stay on this phone.',
+    accountPitch: 'Sign in to find your collection, wishlist and favourite sets on all your devices. It is the same account as NightDex (same nickname, same friends), with a separate Pokémon collection. Without an account, everything stays on this phone.',
     google: 'Continue with Google', or: 'or', email: 'Email address', password: 'Password (at least 6 characters)',
     signIn: 'Sign in', signUp: 'Create an account', forgot: 'Forgot password?', resetSent: 'Password reset email sent',
     signedAs: (e) => `Signed in: ${e}`, signOut: 'Sign out', signedOut: 'Signed out. Your collection stays on this phone.',
     welcome: 'Signed in: your collection is synced',
     syncOk: (t) => `Collection synced${t ? ` · ${t}` : ''}`, syncing: 'Syncing…', syncErr: 'Sync is not possible right now. Your changes are kept on this phone and will be sent later.',
     syncInfo: (n, w) => `${n} ${plural(n, 'card or product', 'cards and products')} owned, ${w} in wishlist: saved to your account.`,
-    deleteAcc: 'Delete my account', deleteConfirm: 'Confirm permanent deletion', deleteNote: 'Deletes your account and the online copy of your collection. The collection stays on this phone.',
-    deleted: 'Account deleted',
+    deleteAcc: 'Delete my CardDex data', deleteConfirm: 'Confirm (your NightDex account stays)', deleteNote: 'Deletes the online copy of your CardDex collection. Your account, nickname and NightDex collection are untouched, and the collection stays on this phone.',
+    deleted: 'CardDex data deleted',
     authErr: { 'auth/invalid-email': 'Invalid email address.', 'auth/missing-password': 'Enter a password.', 'auth/weak-password': 'Password too short: at least 6 characters.', 'auth/email-already-in-use': 'An account already exists with this email: sign in.', 'auth/invalid-credential': 'Wrong email or password.', 'auth/wrong-password': 'Wrong email or password.', 'auth/user-not-found': 'No account with this email.', 'auth/too-many-requests': 'Too many attempts: try again in a few minutes.', 'auth/network-request-failed': 'No internet connection.', 'auth/requires-recent-login': 'For security, sign out and sign in again before deleting your account.', 'auth/unauthorized-domain': 'This site is not yet authorised in Firebase (authorised domains).', default: 'Something went wrong, please try again.' },
     disclaimer: 'CardDex is an unofficial fan app, not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company. Pokémon and character names are trademarks of Nintendo; card images belong to their respective owners. Card database and images: TCGdex (tcgdex.net). Prices: Cardmarket (trend, updated daily).',
     storage: (n, w) => `Your collection is saved on this device (${n} cards owned, ${w} in wishlist). Export it to back it up or move it to another phone.`,
@@ -1555,7 +1558,7 @@ async function initCloud() {
   } catch (e) { console.warn('Compte indisponible', e); }
 }
 
-const cloudRef = () => cloud.api.fsM.doc(cloud.api.db, 'users', cloud.user.uid);
+const cloudRef = () => cloud.api.fsM.doc(cloud.api.db, COL.users, cloud.user.uid);
 const canon = (d) => JSON.stringify([Object.entries(d?.owned ?? {}).filter(([, q]) => q > 0).sort(), [...(d?.wish ?? [])].sort(), [...(d?.fav ?? [])].sort()]);
 function cloudData() { return { owned: Object.fromEntries(Object.entries(user.owned).filter(([, q]) => q > 0)), wish: [...wish], fav: [...fav] }; }
 // fusion au premier passage d'un appareil sur un compte : on additionne (quantité max, souhaits et favoris réunis)
@@ -1678,9 +1681,9 @@ document.addEventListener('submit', async (e) => {
   const uid = document.getElementById('adminLbId').value.trim();
   if (!/^[A-Za-z0-9]{20,40}$/.test(uid)) { toast(L.adm.badId); return; }
   try {
-    await fsx().deleteDoc(dref('leaderboard', uid));
+    await fsx().deleteDoc(dref(COL.leaderboard, uid));
     for (const sub of ['sets', 'cards']) {
-      const ps = await fsx().getDocs(cref('proofs', uid, sub)).catch(() => null);
+      const ps = await fsx().getDocs(cref(COL.proofs, uid, sub)).catch(() => null);
       for (const d of ps?.docs ?? []) await fsx().deleteDoc(d.ref).catch(() => {});
     }
     toast(L.lb.adminDone);
@@ -2302,13 +2305,13 @@ async function renderFriend(uid) {
   if (fr.view?.uid !== uid) {
     view.innerHTML = `<div class="empty"><strong>${L.fr.loading}</strong></div>`;
     try {
-      const [snap, name] = await Promise.all([fsx().getDoc(dref('users', uid)), friendName(uid)]);
+      const [snap, name] = await Promise.all([fsx().getDoc(dref(COL.users, uid)), friendName(uid)]);
       let avatar = null, banner = null;
       try { const p = await fsx().getDoc(dref('profiles', uid)); avatar = p.exists() ? p.data().avatar ?? null : null; banner = p.exists() ? p.data().banner ?? null : null; } catch { /* pas de photo */ }
       let decks = [];
-      try { const ds = await fsx().getDoc(dref('decks', uid)); if (ds.exists()) decks = ds.data().list ?? []; } catch { /* pas de decks ou règles pas à jour */ }
+      try { const ds = await fsx().getDoc(dref(COL.decks, uid)); if (ds.exists()) decks = ds.data().list ?? []; } catch { /* pas de decks ou règles pas à jour */ }
       let gd = { items: [], sales: {} };
-      try { const gs = await fsx().getDoc(dref('graded', uid)); if (gs.exists()) gd = gFromCloud(gs.data()); } catch { /* pas de slabs ou règles pas à jour */ }
+      try { const gs = await fsx().getDoc(dref(COL.graded, uid)); if (gs.exists()) gd = gFromCloud(gs.data()); } catch { /* pas de slabs ou règles pas à jour */ }
       fr.view = { uid, banner, decks, graded: gd.items, gsales: gd.sales, pseudo: name.pseudo, avatar, owned: migrateOwned({ ...(snap.exists() ? snap.data().owned ?? {} : {}) }), wish: snap.exists() ? snap.data().wish ?? [] : [] };
     } catch (e) {
       view.innerHTML = `<div class="empty"><strong>${L.fr.cantSee}</strong>${L.fr.cantSeeHint}<a class="btn-ghost" href="#friends" style="text-decoration:none">${L.back}</a></div>`;
@@ -2688,9 +2691,9 @@ document.addEventListener('click', async (e) => {
       for (const e of user.graded) await cloud.api.fsM.deleteDoc(gPhotoRef(cu.uid, e.g)).catch(() => {});
       await cloud.api.fsM.deleteDoc(gRef(cu.uid)).catch(() => {});
       await cloud.api.fsM.deleteDoc(dRef(cu.uid)).catch(() => {});
-      await cloud.api.fsM.deleteDoc(cloud.api.fsM.doc(cloud.api.db, 'profiles', cu.uid)).catch(() => {});
-      await friendsCleanup(cu.uid);
-      await cloud.api.authM.deleteUser(cu);
+      // le compte, le pseudo, la photo et les amis sont partagés avec NightDex : on ne supprime que les données CardDex
+      await cloud.api.fsM.deleteDoc(lbRef(cu.uid)).catch(() => {});
+      await cloud.api.authM.signOut(cloud.api.auth);
       user.syncedUid = null; save();
     }, L.deleted);
     cloud.confirmDelete = false;
@@ -2821,7 +2824,7 @@ async function gIdb(mode, fn) {
   const db = await gDb();
   return new Promise((res, rej) => { const t = db.transaction('p', mode); const q = fn(t.objectStore('p')); t.oncomplete = () => res(q?.result); t.onerror = () => rej(t.error); });
 }
-const gPhotoRef = (uid, g) => cloud.api.fsM.doc(cloud.api.db, 'gphotos', uid, 'items', g);
+const gPhotoRef = (uid, g) => cloud.api.fsM.doc(cloud.api.db, COL.gphotos, uid, 'items', g);
 async function gPhotoGet(g, uid = cloud.user?.uid) {
   const mk = `${uid ?? 'me'}:${g}`;
   if (gPhotoMem.has(mk)) return gPhotoMem.get(mk);
@@ -2876,7 +2879,7 @@ function gResize(file) {
 }
 
 // --- synchro du compte : document graded/<uid> ---
-const gRef = (uid = cloud.user.uid) => cloud.api.fsM.doc(cloud.api.db, 'graded', uid);
+const gRef = (uid = cloud.user.uid) => cloud.api.fsM.doc(cloud.api.db, COL.graded, uid);
 const gCloud = { unsub: null, timer: 0, dirty: false, denied: false };
 function gMerge(a, b) {
   const items = new Map();
@@ -3457,7 +3460,7 @@ document.addEventListener('click', (ev) => {
 });
 
 // --- synchro : document decks/<uid> ---
-const dRef = (uid = cloud.user.uid) => cloud.api.fsM.doc(cloud.api.db, 'decks', uid);
+const dRef = (uid = cloud.user.uid) => cloud.api.fsM.doc(cloud.api.db, COL.decks, uid);
 const dCloud = { unsub: null, timer: 0, dirty: false, denied: false };
 function dMerge(a, b) {
   const gone = new Set([...(a?.gone ?? []), ...(b?.gone ?? [])]);
@@ -3821,7 +3824,7 @@ document.addEventListener('change', (e) => {
 // ---------- Partage de decks : avec un code (sharedDecks/<CODE>) ou en regardant les decks d'un ami ----------
 const SHARE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newShareCode = () => Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => SHARE_ABC[b % SHARE_ABC.length]).join('');
-const shareRef = (code) => cloud.api.fsM.doc(cloud.api.db, 'sharedDecks', code);
+const shareRef = (code) => cloud.api.fsM.doc(cloud.api.db, COL.sharedDecks, code);
 const deckPayload = (dk) => ({ name: String(dk.name || L.dk.untitled).slice(0, 60), legends: dk.legends.map((x) => x ?? null), main: dk.main, side: dk.side ?? {} });
 const shareUrl = (code) => `${location.origin}${location.pathname}#deckcode-${code}`;
 async function deckShare(dk) {
@@ -4158,9 +4161,9 @@ function statsOf(owned, cardProofs = {}) {
   }
   return { cards, unique, value: Math.round(value * 100) / 100 };
 }
-const lbRef = (uid) => cloud.api.fsM.doc(cloud.api.db, 'leaderboard', uid);
-const proofRef = (uid, code) => cloud.api.fsM.doc(cloud.api.db, 'proofs', uid, 'sets', code);
-const cardProofRef = (uid, id) => cloud.api.fsM.doc(cloud.api.db, 'proofs', uid, 'cards', id);
+const lbRef = (uid) => cloud.api.fsM.doc(cloud.api.db, COL.leaderboard, uid);
+const proofRef = (uid, code) => cloud.api.fsM.doc(cloud.api.db, COL.proofs, uid, 'sets', code);
+const cardProofRef = (uid, id) => cloud.api.fsM.doc(cloud.api.db, COL.proofs, uid, 'cards', id);
 async function lbPush() {
   if (!cloud.user || !user.prefs.lbPublic || !fr.me?.pseudo) return;
   const s = myStats();
@@ -4179,7 +4182,7 @@ async function lbLoad() {
       const rows = [{ uid: cloud.user.uid, pseudo: fr.me?.pseudo ?? L.lb.me, me: true, cards: me.cards, unique: me.unique, value: me.value, verified: me.verified.length }];
       await Promise.all(fr.list.map(async (f) => {
         try {
-          const [u, b, g] = await Promise.all([fsM.getDoc(dref('users', f.uid)), fsM.getDoc(lbRef(f.uid)).catch(() => null), fsM.getDoc(dref('graded', f.uid)).catch(() => null)]);
+          const [u, b, g] = await Promise.all([fsM.getDoc(dref(COL.users, f.uid)), fsM.getDoc(lbRef(f.uid)).catch(() => null), fsM.getDoc(dref(COL.graded, f.uid)).catch(() => null)]);
           const gd = g?.exists() ? g.data() : {};
           const st = statsOf(migrateOwned({ ...(u.exists() ? u.data().owned ?? {} : {}) }), gd.cardProofs ?? {});
           const vsets = Object.keys(gd.proofs ?? {}).length || (b?.exists() ? (b.data().verified ?? []).length : 0);
@@ -4190,7 +4193,7 @@ async function lbLoad() {
     } else {
       if (user.prefs.lbPublic) await lbPush();
       const field = lb.metric === 'sets' ? 'vsets' : lb.metric;
-      const snap = await fsM.getDocs(fsM.query(fsM.collection(db, 'leaderboard'), fsM.orderBy(field, 'desc'), fsM.limit(50)));
+      const snap = await fsM.getDocs(fsM.query(fsM.collection(db, COL.leaderboard), fsM.orderBy(field, 'desc'), fsM.limit(50)));
       lb.rows = snap.docs.map((d) => { const x = d.data(); return { uid: d.id, pseudo: x.pseudo, cards: x.cards ?? 0, unique: x.unique ?? 0, value: x.value ?? 0, verified: (x.verified ?? []).length, me: d.id === cloud.user.uid }; });
     }
   } catch (e) { lb.rows = []; lb.msg = e?.code === 'permission-denied' ? L.lb.rulesNeeded : L.fr.error; }
@@ -4232,8 +4235,8 @@ async function openProofs(uid, pseudo) {
   sheet.hidden = false; document.body.style.overflow = 'hidden';
   let items = [];
   let cardsP = [];
-  try { const snap = await cloud.api.fsM.getDocs(cloud.api.fsM.collection(cloud.api.db, 'proofs', uid, 'sets')); items = snap.docs.map((d) => ({ code: d.id, ...d.data() })); } catch { /* */ }
-  try { const snap = await cloud.api.fsM.getDocs(cloud.api.fsM.collection(cloud.api.db, 'proofs', uid, 'cards')); cardsP = snap.docs.map((d) => ({ id: d.id, ...d.data() })); } catch { /* */ }
+  try { const snap = await cloud.api.fsM.getDocs(cloud.api.fsM.collection(cloud.api.db, COL.proofs, uid, 'sets')); items = snap.docs.map((d) => ({ code: d.id, ...d.data() })); } catch { /* */ }
+  try { const snap = await cloud.api.fsM.getDocs(cloud.api.fsM.collection(cloud.api.db, COL.proofs, uid, 'cards')); cardsP = snap.docs.map((d) => ({ id: d.id, ...d.data() })); } catch { /* */ }
   if (sheetMode !== 'proofs') return;
   sheetPanel.innerHTML = `${sheetTop()}<div class="stack">
     <h2 id="sheetTitle" style="margin:0;font:700 22px var(--font-display)">@${esc(pseudo)}</h2>

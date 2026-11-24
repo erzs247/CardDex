@@ -35,12 +35,14 @@ Aucune dépendance côté appli : HTML, CSS et JavaScript.
 
 Ensuite tout est automatique : prix chaque jour vers 7 h, nouvelles séries chaque lundi.
 
-## Comptes (optionnel)
+## Comptes
 
-Comme NightDex, mais avec **un projet Firebase à part** (sinon les collections des deux applis se mélangeraient) :
-créer le projet, activer Google + e-mail, ajouter `erzs247.github.io` aux domaines autorisés, créer Firestore,
-coller `firestore.rules`, puis copier la configuration web dans `data/firebase.json`. Tant que ce fichier vaut `{}`,
-l'appli marche sans comptes (collection sur l'appareil, export / import dans les Réglages).
+CardDex utilise **le même projet Firebase que NightDex** (`data/firebase.json`) : même connexion Google / e-mail, même pseudo,
+mêmes amis et même photo de profil. Les données propres à CardDex (collection, gradées, classement, decks…) sont dans
+des collections à part, préfixées `cdx_`, pour ne jamais toucher à la collection NightDex.
+
+À faire une fois : coller le fichier `firestore.rules` de ce dépôt dans la console Firebase du projet *nightdex*
+(*Firestore Database → Règles → Publier*). Il contient les règles de NightDex **et** celles de CardDex.
 
 ## En veille
 

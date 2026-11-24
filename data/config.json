@@ -5,8 +5,14 @@
     "idGame": 6,
     "productsUrl": "https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_{idGame}.json",
     "priceGuideUrl": "https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_{idGame}.json",
-    "languageIds": { "en": 1, "fr": 2, "ja": 7 }
+    "languageIds": {
+      "en": 1,
+      "fr": 2,
+      "ja": 7
+    }
   },
   "images": "https://assets.tcgdex.net",
-  "admins": []
+  "admins": [
+    "XYVqyK7LCoQ7Gbfq9weJB2jnKQN2"
+  ]
 }
