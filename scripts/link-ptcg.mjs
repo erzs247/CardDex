@@ -9,9 +9,17 @@ import { dirname, join } from 'node:path';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const path = join(root, 'data/catalog.json');
 const catalog = JSON.parse(readFileSync(path, 'utf8'));
-const r = await fetch('https://api.pokemontcg.io/v2/sets?pageSize=250');
-if (!r.ok) throw new Error(`pokemontcg.io → HTTP ${r.status}`);
-const ptcg = (await r.json()).data;
+// liste des séries : l'API, sinon les mêmes données publiées par pokemontcg.io sur GitHub
+async function loadSets() {
+  for (const [url, pick] of [
+    ['https://api.pokemontcg.io/v2/sets?pageSize=250', (j) => j.data],
+    ['https://raw.githubusercontent.com/PokemonTCG/pokemon-tcg-data/master/sets/en.json', (j) => j],
+  ]) {
+    try { const r = await fetch(url); if (r.ok) return pick(await r.json()); console.warn(`${url} → HTTP ${r.status}`); } catch (e) { console.warn(`${url} : ${e.message}`); }
+  }
+  throw new Error('séries pokemontcg.io indisponibles');
+}
+const ptcg = await loadSets();
 const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '');
 const day = (d) => String(d ?? '').replace(/\//g, '-').slice(0, 10);
 const byName = new Map(ptcg.map((s) => [norm(s.name), s]));
