@@ -55,6 +55,8 @@ try {
   const r = dir ? null : await fetch(config.cardmarket.productsUrl.replace('{idGame}', idGame));
   const products = r?.ok ? (await r.json()).products : [];
   const expOf = new Map(products.map((p) => [p.idProduct, p.idExpansion]));
+  // aperçu du format des produits (journal de l'Action) : sert à relier les cartes par leur nom Cardmarket
+  console.log('Exemples de produits :', JSON.stringify(products.filter((p) => [4328, 6704, 1649].includes(p.idExpansion)).slice(0, 12)));
   let n = 0;
   for (const c of catalog.cards) {
     const e = expOf.get(c.cardmarket?.idProduct);
