@@ -774,13 +774,13 @@ function cmUrl(card) {
   const { gameSlug = 'Pokemon', languageIds = { en: 1, fr: 2, ja: 7 } } = config.cardmarket ?? {};
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const printedIn = card.languages?.includes(cardLang) ? cardLang : card.languages?.[0] ?? 'en';
-  if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
+  if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const st = setOf(card.set);
   const num = String(card.number).replace(/^0+(?=\d)/, '');
-  // fiche directe, sur le modèle des adresses Cardmarket :
+  // fiche directe, sur le modèle des adresses Cardmarket (sans filtre ?language=, qui demande d'être connecté) :
   // /Products/Singles/Champions-Path/Charizard-V-CPA79  (série anglaise / nom anglais - SIGLE + numéro)
   if (st?.print && st.nameEn && card.nameEn && /^\d+$/.test(num) && !card.id.startsWith('J-')) {
-    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}-${st.print}${num}?language=${languageIds[printedIn] ?? 1}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
+    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}-${st.print}${num}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
   }
   return { url: cmSearch(card, st, num, gameSlug), exact: false };
 }
