@@ -98,7 +98,8 @@ try {
         cs.sort(byNumber).forEach((c, i) => {
           const id = ps[i].idProduct;
           if (c.cardmarket?.idProduct !== id) changed++;
-          c.cardmarket = { idProduct: id, idExpansion: e };
+          // plusieurs versions du même nom : Cardmarket les numérote dans l'adresse (…/Mega-Rayquaza-ex-V3-DLR141)
+          c.cardmarket = { idProduct: id, idExpansion: e, ...(ps.length > 1 ? { v: i + 1 } : {}) };
           linked++;
         });
       }

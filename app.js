@@ -780,9 +780,31 @@ function cmUrl(card) {
   // fiche directe, sur le modèle des adresses Cardmarket (sans filtre ?language=, qui demande d'être connecté) :
   // /Products/Singles/Champions-Path/Charizard-V-CPA79  (série anglaise / nom anglais - SIGLE + numéro)
   if (st?.print && st.nameEn && card.nameEn && /^\d+$/.test(num) && !card.id.startsWith('J-')) {
-    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}-${st.print}${num}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
+    const v = card.cardmarket?.v ?? cmVersion(card);
+    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}${v ? `-V${v}` : ''}-${st.print}${num}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
   }
   return { url: cmSearch(card, st, num, gameSlug), exact: false };
+}
+// rang de la carte parmi les cartes du même nom de sa série (versions V1, V2, V3… de Cardmarket), à défaut du rang relevé
+let cmVersions = null;
+function cmVersion(card) {
+  if (!cmVersions) {
+    cmVersions = new Map();
+    const groups = new Map();
+    const nk = (n) => String(n).match(/^(\D*)(\d+)/);
+    for (const c of catalog.cards) {
+      if (!c.nameEn || c.id.startsWith('J-')) continue;
+      const k = `${c.set}|${c.nameEn.toLowerCase()}`;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(c);
+    }
+    for (const list of groups.values()) {
+      if (list.length < 2) continue;
+      list.sort((a, b) => { const x = nk(a.number) ?? ['', '', 0], y = nk(b.number) ?? ['', '', 0]; return x[1].localeCompare(y[1]) || Number(x[2]) - Number(y[2]); });
+      list.forEach((c, i) => cmVersions.set(c.id, i + 1));
+    }
+  }
+  return cmVersions.get(card.id) ?? 0;
 }
 // texte d'adresse façon Cardmarket : accents retirés, apostrophes et « & » supprimés, le reste en tirets
 const cmSlug = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’.&]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
