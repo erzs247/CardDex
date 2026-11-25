@@ -775,6 +775,9 @@ function cmUrl(card) {
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const printedIn = card.languages?.includes(cardLang) ? cardLang : card.languages?.[0] ?? 'en';
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
+  // lien exact : redirection de pokemontcg.io vers la page Cardmarket de la carte (cartes anglaises reliées)
+  const st = setOf(card.set);
+  if (st?.ptcg && card.languages?.includes('en')) return { url: `https://prices.pokemontcg.io/cardmarket/${st.ptcg}-${String(card.number).replace(/^0+(?=\d)/, '')}`, exact: true };
   const nm = encodeURIComponent(card.nameEn ?? card.name);
   // extension connue (relevée par update-prices.mjs) : liste de la série filtrée sur le nom de la carte
   if (card.cardmarket?.idExpansion) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${nm}&idExpansion=${card.cardmarket.idExpansion}&mode=gallery`, exact: false };
