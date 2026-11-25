@@ -775,13 +775,15 @@ function cmUrl(card) {
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const printedIn = card.languages?.includes(cardLang) ? cardLang : card.languages?.[0] ?? 'en';
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
-  // lien exact : redirection de pokemontcg.io vers la page Cardmarket de la carte (cartes anglaises reliées)
+  // lien exact : page du produit Cardmarket (identifiant relevé par TCGdex), filtrée sur la langue de l'édition
+  const cmId = card.cardmarket?.idProduct;
+  const shared = cmId && catalog.cards.some((o) => o !== card && o.cardmarket?.idProduct === cmId && o.set === card.set && (parseInt(o.number, 10) || 0) < (parseInt(card.number, 10) || 0));
+  if (cmId && !shared) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products?idProduct=${cmId}&language=${languageIds[printedIn] ?? 1}`, exact: true };
+  // sinon recherche sur le nom tel que Cardmarket l'écrit : « Charizard ex (MEW 199) »
   const st = setOf(card.set);
-  if (st?.ptcg && card.languages?.includes('en')) return { url: `https://prices.pokemontcg.io/cardmarket/${st.ptcg}-${String(card.number).replace(/^0+(?=\d)/, '')}`, exact: true };
-  const nm = encodeURIComponent(card.nameEn ?? card.name);
-  // extension connue (relevée par update-prices.mjs) : liste de la série filtrée sur le nom de la carte
-  if (card.cardmarket?.idExpansion) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${nm}&idExpansion=${card.cardmarket.idExpansion}&mode=gallery`, exact: false };
-  return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${nm}`, exact: false };
+  const num = String(card.number).replace(/^0+(?=\d)/, '');
+  const q = encodeURIComponent(`${card.nameEn ?? card.name}${st?.print ? ` (${st.print} ${num})` : ''}`);
+  return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${q}&mode=gallery`, exact: false };
 }
 
 // ---------- Images ----------

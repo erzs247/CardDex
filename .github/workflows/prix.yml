@@ -41,8 +41,6 @@ jobs:
       - run: npm ci
       - name: Séries et cartes TCGdex (FR, EN, JP)
         run: node scripts/import-tcgdex.mjs ${{ inputs.complet == true && '--full' || '' }}
-      - name: Liens exacts Cardmarket (via pokemontcg.io)
-        run: node scripts/link-ptcg.mjs || echo "pokemontcg.io indisponible cette semaine"
       - name: Prix TCGplayer (deuxième source, convertie en euros)
         run: node scripts/update-tcgplayer.mjs || echo "TCGplayer indisponible cette semaine"
       - name: Empreintes du scanner (nouvelles cartes)
