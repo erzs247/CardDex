@@ -111,7 +111,10 @@ for (const c of catalog.cards) {
   }
   const holoOnly = !num(g.trend) && !num(g.avg) && !!rev(g, 'trend');
   const f = (k) => (holoOnly ? rev(g, k) : num(g[k]));
-  const cm = f('trend') ?? f('avg') ?? f('low');
+  let cm = f('trend') ?? f('avg') ?? f('low');
+  // tendance aberrante (ex. 0,02 € pour une carte qui se vend 100 €) : on prend la médiane tendance / moy. 7 j / moy. 30 j
+  const a7 = f('avg7'), a30 = f('avg30');
+  if (cm != null && a7 != null && a30 != null && (cm > a30 * 4 || cm < a30 / 4)) cm = [cm, a7, a30].sort((x, y) => x - y)[1];
   if (cm == null && !tp) continue;
   priced++;
   // trend / cm = Cardmarket (éditions FR et JP) ; mix = moyenne Cardmarket + TCGplayer (édition EN, calculée dans l'appli)
@@ -125,7 +128,7 @@ for (const c of catalog.cards) {
   if (!h.length) {
     if (p.avg30) h.push([daysAgo(30), p.avg30]);
     if (p.avg7) h.push([daysAgo(7), p.avg7]);
-    if (p.avg1) h.push([daysAgo(1), p.avg1]);
+    // (pas de moyenne 1 j : sur une carte peu vendue, une seule vente la rend très éloignée du vrai prix)
   }
   // le premier mois, la courbe commence par les moyennes 30 j / 7 j / 1 j de Cardmarket (note sous le graphique)
   if (h.length < 34) p.seeded = true;
