@@ -1013,6 +1013,34 @@ function renderExtra() {
     <p class="note">${L.ex.note}</p>
   </div>`;
 }
+// Groupes de séries de l'accueil (comme Pokécardex)
+const ERA_ORDER = ['me', 'sv', 'swsh', 'sm', 'xy', 'bw', 'hgss', 'pl', 'dp', 'ex', 'wizards'];
+const ERA_OF = { col: 'hgss', base: 'wizards', gym: 'wizards', neo: 'wizards', lc: 'wizards', ecard: 'wizards' };
+const SPECIAL = {
+  promos: { rank: 100, fr: 'Promos', en: 'Promos' },
+  league: { rank: 101, fr: 'Ligue Pokémon', en: 'Pokémon League' },
+  jumbo: { rank: 102, fr: 'Jumbos', en: 'Jumbos' },
+  tk: { rank: 103, fr: 'Kit du Dresseur', en: 'Trainer Kits' },
+  worlds: { rank: 104, fr: 'World Championships', en: 'World Championships' },
+  mc: { rank: 105, fr: "McDonald's", en: "McDonald's" },
+  misc: { rank: 106, fr: 'Divers', en: 'Miscellaneous' },
+};
+const PROMO_SETS = new Set(['basep', 'np', 'dpp', 'hgssp', 'bwp', 'xyp', 'smp', 'swshp', 'svp', 'mep', 'miscp', 'bog']);
+function setGroup(s) {
+  const special = (k) => ({ key: k, rank: SPECIAL[k].rank, name: SPECIAL[k][lang] ?? SPECIAL[k].fr });
+  const b = s.block ?? 'misc', id = s.tcgdex ?? s.code;
+  if (s.code.startsWith('J-')) return { key: b, rank: 50, name: blockName(b) }; // éditions japonaises : par série, les plus récentes d'abord
+  if (PROMO_SETS.has(id) || /promo/i.test(s.nameEn ?? s.name)) return special('promos');
+  if (b === 'pop') return special('league');
+  if (b === 'tk') return special('tk');
+  if (b === 'mc') return special('mc');
+  if (/jumbo/i.test(s.nameEn ?? s.name)) return special('jumbo');
+  if (/world championship/i.test(s.nameEn ?? s.name)) return special('worlds');
+  const era = ERA_OF[b] ?? b;
+  const i = ERA_ORDER.indexOf(era);
+  if (i < 0) return special('misc');
+  return { key: era, rank: i, name: era === 'wizards' ? 'Wizards' : blockName(era) };
+}
 function renderHome() {
   homeTopbar(true);
   const mode = user.prefs.homeMode;
@@ -1025,8 +1053,12 @@ function renderHome() {
   const groups = new Map();
   const favSets = sets.filter((s) => fav.has(s.code));
   if (favSets.length) groups.set(L.favorites, favSets);
-  for (const s of sets) { const b = blockName(s.block ?? 'new'); if (!groups.has(b)) groups.set(b, []); groups.get(b).push(s); }
-  const body = [...groups].map(([name, list], i) => `<details class="block" ${i < 3 || q ? 'open' : ''}>
+  const byGroup = new Map();
+  for (const s of sets) { const g = setGroup(s); if (!byGroup.has(g.key)) byGroup.set(g.key, { ...g, list: [] }); byGroup.get(g.key).list.push(s); }
+  // ordre façon Pokécardex : générations de la plus récente à la plus ancienne, puis promos, ligue, kits, McDonald's, divers
+  const ordered = [...byGroup.values()].sort((a, b) => a.rank - b.rank || String(b.list[0]?.releaseDate ?? '').localeCompare(String(a.list[0]?.releaseDate ?? '')));
+  for (const g of ordered) groups.set(g.name, g.list);
+  const body = [...groups].map(([name, list], i) => `<details class="block" ${i === 0 || q ? 'open' : ''}>
       <summary>${esc(name)}${I.chevron}</summary>
       ${mode === 'grid' ? `<div class="set-tiles">${list.map(progressTile).join('')}</div>` : `<div class="set-list">${list.map(progressRow).join('')}</div>`}
     </details>`).join('');
