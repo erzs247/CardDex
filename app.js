@@ -775,15 +775,11 @@ function cmUrl(card) {
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const printedIn = card.languages?.includes(cardLang) ? cardLang : card.languages?.[0] ?? 'en';
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
-  // lien exact : page du produit Cardmarket (identifiant relevé par TCGdex), filtrée sur la langue de l'édition
-  const cmId = card.cardmarket?.idProduct;
-  const shared = cmId && catalog.cards.some((o) => o !== card && o.cardmarket?.idProduct === cmId && o.set === card.set && (parseInt(o.number, 10) || 0) < (parseInt(card.number, 10) || 0));
-  if (cmId && !shared) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products?idProduct=${cmId}&language=${languageIds[printedIn] ?? 1}`, exact: true };
-  // sinon recherche sur le nom tel que Cardmarket l'écrit : « Charizard ex (MEW 199) »
+  // recherche sur le nom tel que Cardmarket l'écrit : « Charizard ex (MEW 199) » (une seule carte trouvée en général)
   const st = setOf(card.set);
   const num = String(card.number).replace(/^0+(?=\d)/, '');
   const q = encodeURIComponent(`${card.nameEn ?? card.name}${st?.print ? ` (${st.print} ${num})` : ''}`);
-  return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${q}&mode=gallery`, exact: false };
+  return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${q}&mode=gallery`, exact: !!st?.print };
 }
 
 // ---------- Images ----------
