@@ -4757,6 +4757,7 @@ function markTabs() {
     if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   }
 }
+let homeReturn = null;
 function route() {
   const h = location.hash.slice(1) || 'home';
   if (!sheet.hidden) closeCard();
@@ -4787,6 +4788,13 @@ function route() {
   markTabs();
   currentRender();
   window.scrollTo(0, 0);
+  // retour à l'accueil depuis une série : on rouvre son groupe et on revient sur elle
+  if (h.startsWith('set-')) homeReturn = h.slice(4);
+  else if (currentRender === renderHome && homeReturn) {
+    const row = document.querySelector(`a[href="#set-${CSS.escape(homeReturn)}"]`);
+    if (row) { const d = row.closest('details'); if (d) d.open = true; row.scrollIntoView({ block: 'center' }); }
+    homeReturn = null;
+  } else if (tab !== 'home') homeReturn = null;
   if (h === 'search') document.getElementById('cardSearch')?.focus();
   petEvent('route');
 }
