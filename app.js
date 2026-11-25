@@ -775,12 +775,19 @@ function cmUrl(card) {
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const printedIn = card.languages?.includes(cardLang) ? cardLang : card.languages?.[0] ?? 'en';
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
-  // recherche sur le nom tel que Cardmarket l'écrit : « Charizard ex (MEW 199) » (une seule carte trouvée en général)
   const st = setOf(card.set);
   const num = String(card.number).replace(/^0+(?=\d)/, '');
-  const q = encodeURIComponent(`${card.nameEn ?? card.name}${st?.print ? ` (${st.print} ${num})` : ''}`);
-  return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${q}&mode=gallery`, exact: !!st?.print };
+  // fiche directe, sur le modèle des adresses Cardmarket :
+  // /Products/Singles/Champions-Path/Charizard-V-CPA79  (série anglaise / nom anglais - SIGLE + numéro)
+  if (st?.print && st.nameEn && card.nameEn && /^\d+$/.test(num) && !card.id.startsWith('J-')) {
+    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}-${st.print}${num}?language=${languageIds[printedIn] ?? 1}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
+  }
+  return { url: cmSearch(card, st, num, gameSlug), exact: false };
 }
+// texte d'adresse façon Cardmarket : accents retirés, apostrophes et « & » supprimés, le reste en tirets
+const cmSlug = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’.&]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+// recherche sur le nom tel que Cardmarket l'écrit : « Charizard ex (MEW 199) »
+const cmSearch = (card, st, num, gameSlug) => `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${encodeURIComponent(`${card.nameEn ?? card.name}${st?.print ? ` (${st.print} ${num})` : ''}`)}&mode=gallery`;
 
 // ---------- Images ----------
 const artCache = new Map();
@@ -1532,7 +1539,7 @@ function openCard(id, keepNav) {
       ${c.price ? `<p class="note num">${L.ex.priceNote(eur(c.price.value), fmt.date.format(parseDay(c.price.date)), c.price.source)}</p>` : ''}
       <a class="cta" href="https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`pokemon ${c.ebay ?? c.nameEn}`)}" target="_blank" rel="noopener">${L.ex.ebayLive} ${I.ext}</a>
       <a class="btn-ghost" style="text-align:center;text-decoration:none" href="https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`pokemon ${c.ebay ?? c.nameEn}`)}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">${L.ex.ebaySold}</a>`
-      : `<a class="cta" href="${esc(cm.url)}" target="_blank" rel="noopener">${cm.exact ? L.cmView : L.cmSearch} ${I.ext}</a>`}
+      : `<a class="cta" href="${esc(cm.url)}" target="_blank" rel="noopener">${cm.exact ? L.cmView : L.cmSearch} ${I.ext}</a>${cm.search ? `<a class="cm-alt" href="${esc(cm.search)}" target="_blank" rel="noopener">${lang === 'en' ? 'Page not found? Search on Cardmarket' : 'Page introuvable ? Chercher sur Cardmarket'}</a>` : ''}`}
       ${cardLang === 'en' && !isSealed(c) && !isExtra(c) && c.languages?.includes('en') ? `<a class="btn-ghost tcg-btn" href="${esc(tcgUrl(c, p))}" target="_blank" rel="noopener">${lang === 'en' ? 'See on TCGplayer' : 'Voir sur TCGplayer'} ${I.ext}</a>` : ''}
       ${sealedItem ? '' : `<button class="btn-ghost" data-action="g-add-card" data-id="${esc(id)}">${I.slab}<span>${L.gr.addThis}${user.graded.some((e) => e.id === id) ? ` · ${L.gr.youHave(user.graded.filter((e) => e.id === id).length)}` : ''}</span></button>`}
       ${c.official ? `<a class="btn-ghost" style="text-align:center;text-decoration:none" href="${esc(c.official)}" target="_blank" rel="noopener">${L.official}</a>` : ''}
