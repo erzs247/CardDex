@@ -777,11 +777,11 @@ function cmUrl(card) {
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
   const st = setOf(card.set);
   const num = String(card.number).replace(/^0+(?=\d)/, '');
-  // fiche directe, sur le modèle des adresses Cardmarket (sans filtre ?language=, qui demande d'être connecté) :
+  // fiche directe, sur le modèle des adresses Cardmarket, filtrée sur la langue de l'édition (FR = 2, EN = 1, JP = 7) :
   // /Products/Singles/Champions-Path/Charizard-V-CPA79  (série anglaise / nom anglais - SIGLE + numéro)
   if (st?.print && st.nameEn && card.nameEn && /^\d+$/.test(num) && !card.id.startsWith('J-')) {
     const v = card.cardmarket?.v ?? cmVersion(card);
-    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}${v ? `-V${v}` : ''}-${st.print}${num}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
+    return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles/${cmSlug(st.nameEn)}/${cmSlug(card.nameEn)}${v ? `-V${v}` : ''}-${st.print}${num}?language=${languageIds[printedIn] ?? 1}`, exact: true, search: cmSearch(card, st, num, gameSlug) };
   }
   return { url: cmSearch(card, st, num, gameSlug), exact: false };
 }
