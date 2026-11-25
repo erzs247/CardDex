@@ -25,6 +25,8 @@ const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : null);
 // prix de référence TCGplayer : « market price » de la version normale, sinon holo, sinon reverse, sinon la première trouvée
 function pick(tp) {
   if (!tp || typeof tp !== 'object') return null;
+  pick.pid = null;
+  for (const v of Object.values(tp)) if (v && typeof v === 'object' && v.productId) { pick.pid = v.productId; break; }
   const order = ['normal', 'holofoil', 'holo', 'unlimited', 'unlimitedHolofoil', '1stEdition', '1stEditionHolofoil', 'reverse-holofoil', 'reverseHolofoil', 'reverse'];
   const variants = Object.keys(tp).filter((k) => tp[k] && typeof tp[k] === 'object');
   for (const k of [...order.filter((o) => variants.includes(o)), ...variants]) {
@@ -37,7 +39,7 @@ function pick(tp) {
 
 const todo = catalog.cards.filter((c) => c.languages?.includes('en') && !c.id.startsWith('J-')).slice(0, limit);
 console.log(`TCGplayer : ${todo.length} cartes anglaises à relever (1 $ = ${(1 / usdPerEur).toFixed(4)} €).`);
-const prices = {};
+const prices = {}, ids = { ...(old.ids ?? {}) };
 let i = 0, found = 0, done = 0;
 await Promise.all(Array.from({ length: 8 }, async () => {
   while (i < todo.length) {
@@ -49,6 +51,7 @@ await Promise.all(Array.from({ length: 8 }, async () => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const d = await r.json();
         const usd = pick(d.pricing?.tcgplayer);
+        if (pick.pid) ids[c.id] = pick.pid;
         if (usd) { prices[c.id] = Math.round((usd / usdPerEur) * 100) / 100; found++; }
         break;
       } catch { await new Promise((res) => setTimeout(res, 1000 * 2 ** t)); }
@@ -58,5 +61,5 @@ await Promise.all(Array.from({ length: 8 }, async () => {
 }));
 // une carte sans relevé cette semaine garde son ancien prix (s'il existe)
 for (const [id, v] of Object.entries(old.prices ?? {})) if (!(id in prices) && catalog.cards.some((c) => c.id === id)) prices[id] = v;
-writeFileSync(outPath, JSON.stringify({ source: 'TCGplayer via TCGdex', currency: 'EUR', usdPerEur, updatedAt: new Date().toISOString().slice(0, 10), prices }));
+writeFileSync(outPath, JSON.stringify({ source: 'TCGplayer via TCGdex', currency: 'EUR', usdPerEur, updatedAt: new Date().toISOString().slice(0, 10), prices, ids }));
 console.log(`TCGplayer : ${found} prix relevés, ${Object.keys(prices).length} au total.`);

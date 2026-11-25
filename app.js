@@ -672,9 +672,16 @@ async function loadData() {
   document.getElementById('demoBanner').hidden = !catalog.demo;
 }
 
-const P = (id) => priceFile.prices[id];
+// Prix selon l'édition : FR et JP = Cardmarket ; EN = moyenne Cardmarket + TCGplayer (ou l'un des deux s'il manque l'autre)
+const P = (id, l = cardLang) => {
+  const p = priceFile.prices[id];
+  if (!p || !('cm' in p || 'tcg' in p)) return p;
+  const t = (l === 'en' ? p.mix ?? p.cm ?? p.tcg : p.cm) ?? null;
+  return t === p.trend ? p : { ...p, trend: t, history: priceFile.prices[id].history };
+};
+const tcgOn = (p, l = cardLang) => l === 'en' && p?.tcg != null;
 const hasPrices = () => Object.keys(priceFile.prices ?? {}).length > 0;
-const price = (id) => P(id)?.trend ?? null;
+const price = (id, l = cardLang) => P(id, l)?.trend ?? null;
 // collection séparée par langue : clé « id » = exemplaires FR, « id@en » = exemplaires EN (le scellé n'a qu'une clé)
 const okey = (id, l = cardLang) => {
   const c = cardsById.get(id);
@@ -702,7 +709,7 @@ function setCopies(id, list, l = cardLang) {
 }
 const foilPrice = (id) => P(id)?.trendFoil ?? null;
 // valeur des exemplaires d'une langue : prix foil pour les exemplaires foil quand Cardmarket le donne
-const valueOf = (id, l = cardLang) => copiesOf(id, l).reduce((a, x) => a + ((x.f ? foilPrice(id) : null) ?? price(id) ?? 0), 0);
+const valueOf = (id, l = cardLang) => copiesOf(id, l).reduce((a, x) => a + ((x.f ? foilPrice(id) : null) ?? price(id, l) ?? 0), 0);
 const valueAll = (id) => langsOf(id).reduce((a, l) => a + valueOf(id, l), 0);
 // anciennes données (une seule quantité par carte) : les cartes qui n'existent qu'en anglais passent en « @en », le reste reste en FR
 function migrateOwned(map) {
@@ -752,7 +759,8 @@ function change(id, days) {
   const h = P(id)?.history;
   if (!h || h.length < 2) {
     const p = P(id), base = days <= 7 ? p?.avg7 : p?.avg30;
-    return p?.trend && base && days <= 30 ? p.trend / base - 1 : null;
+    const cur = p?.cm ?? p?.trend;
+    return cur && base && days <= 30 ? cur / base - 1 : null;
   }
   const last = h[h.length - 1];
   const from = new Date(parseDay(last[0]) - days * 864e5).toISOString().slice(0, 10);
@@ -760,6 +768,8 @@ function change(id, days) {
   return before ? last[1] / before - 1 : null;
 }
 // Lien Cardmarket : page exacte de la carte (avec filtre de langue), sinon recherche par nom
+// page TCGplayer de la carte (identifiant relevé par update-tcgplayer.mjs), sinon recherche par nom et numéro
+const tcgUrl = (c, p) => (p?.tid ? `https://www.tcgplayer.com/product/${p.tid}` : `https://www.tcgplayer.com/search/pokemon/product?productLineName=pokemon&q=${encodeURIComponent(`${c.nameEn ?? c.name} ${c.number}`)}`);
 function cmUrl(card) {
   const { gameSlug = 'Pokemon', languageIds = { en: 1, fr: 2, ja: 7 } } = config.cardmarket ?? {};
   if (card.cardmarket?.path && isSealed(card)) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}`, exact: true };
@@ -1444,7 +1454,7 @@ function openCard(id, keepNav) {
           ${stats ? `<span class="sub num">${stats}</span>` : ''}
           ${enOnly ? `<span class="sub">${L.enOnly(enOnly)}</span>` : ''}
           ${!sealedItem ? langsOf(id).filter((l) => okey(id, l) !== okey(id) && qty(id, l)).map((l) => `<span class="sub other-copies">${L.otherCopies(qty(id, l), LANG_TAG[l])}</span>`).join('') : ''}
-          <div class="big-price num"><small>${isExtra(c) ? L.ex.estimate : L.trend}${!isExtra(c) && p.trend != null ? ` · ${p.cm != null && p.tcg != null ? (lang === 'en' ? 'Cardmarket + TCGplayer average' : 'moyenne Cardmarket + TCGplayer') : p.src === 't' ? 'TCGplayer (US)' : 'Cardmarket'}` : ''}${p.foil ? ` · <span class="foil">${L.foil}</span>` : ''}</small>${p.trend != null ? eur(p.trend) : `<span style="font-size:18px;color:var(--muted)">${L.noPrice}</span>`}</div>
+          <div class="big-price num"><small>${isExtra(c) ? L.ex.estimate : L.trend}${!isExtra(c) && p.trend != null ? ` · ${tcgOn(p) && p.cm != null ? (lang === 'en' ? 'Cardmarket + TCGplayer average' : 'moyenne Cardmarket + TCGplayer') : tcgOn(p) ? 'TCGplayer (US)' : 'Cardmarket'}` : ''}${p.foil ? ` · <span class="foil">${L.foil}</span>` : ''}</small>${p.trend != null ? eur(p.trend) : `<span style="font-size:18px;color:var(--muted)">${L.noPrice}</span>`}</div>
           ${ch != null ? `<span class="delta num ${ch >= 0 ? 'up' : 'down'}">${pct(ch)} ${L.over30}</span>` : ''}
           <div class="detail-actions">
             <div class="stepper" role="group" aria-label="${L.copies}">
@@ -1470,17 +1480,17 @@ function openCard(id, keepNav) {
         <input id="cardPaid" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" value="${paidOf(id) ?? ''}" data-paid-id="${esc(id)}">
         <span class="paid-diff num" id="paidDiff">${paidOf(id) != null ? (p.trend != null ? `${L.paidVs} ${diffHtml(paidDiff(id))}` : L.noPrice) : `<span class="muted">${L.paidHint}</span>`}</span>
       </div>` : ''}
-      ${p.cm != null && p.tcg != null && !isExtra(c) ? `<div class="stats">
+      ${tcgOn(p) && p.cm != null && !isExtra(c) ? `<div class="stats">
         <div class="stat"><small>Cardmarket</small><b class="num">${eur(p.cm)}</b></div>
         <div class="stat"><small>TCGplayer (US)</small><b class="num">${eur(p.tcg)}</b></div>
       </div>` : ''}
-      ${p.trend != null && !isExtra(c) && p.src !== 't' ? `<div class="stats">
+      ${p.cm != null && !isExtra(c) ? `<div class="stats">
         <div class="stat"><small>${L.from}</small><b class="num">${eur(p.low)}</b></div>
         <div class="stat"><small>${L.avg7}</small><b class="num">${eur(p.avg7)}</b></div>
         <div class="stat"><small>${L.avg30}</small><b class="num">${eur(p.avg30)}</b></div>
       </div>` : ''}
       <section class="panel" ${isExtra(c) ? 'hidden' : ''}>
-        <h3>${L.curve} <small>${p.tcg != null ? 'Cardmarket + TCGplayer' : 'Cardmarket'}${priceFile.updatedAt ? ` · ${fmt.date.format(parseDay(priceFile.updatedAt))}` : ''}</small></h3>
+        <h3>${L.curve} <small>${p.cm == null && tcgOn(p) ? 'TCGplayer' : 'Cardmarket'}${priceFile.updatedAt ? ` · ${fmt.date.format(parseDay(priceFile.updatedAt))}` : ''}</small></h3>
         <div class="ranges" id="cardRanges"></div>
         <div class="chart" id="cardChart"></div>
         ${p.seeded && (p.history?.length ?? 0) > 1 ? `<p class="note">${L.seeded}</p>` : ''}
@@ -1490,6 +1500,7 @@ function openCard(id, keepNav) {
       <a class="cta" href="https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`pokemon ${c.ebay ?? c.nameEn}`)}" target="_blank" rel="noopener">${L.ex.ebayLive} ${I.ext}</a>
       <a class="btn-ghost" style="text-align:center;text-decoration:none" href="https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(`pokemon ${c.ebay ?? c.nameEn}`)}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">${L.ex.ebaySold}</a>`
       : `<a class="cta" href="${esc(cm.url)}" target="_blank" rel="noopener">${cm.exact ? L.cmView : L.cmSearch} ${I.ext}</a>`}
+      ${cardLang === 'en' && !isSealed(c) && !isExtra(c) && c.languages?.includes('en') ? `<a class="btn-ghost tcg-btn" href="${esc(tcgUrl(c, p))}" target="_blank" rel="noopener">${lang === 'en' ? 'See on TCGplayer' : 'Voir sur TCGplayer'} ${I.ext}</a>` : ''}
       ${sealedItem ? '' : `<button class="btn-ghost" data-action="g-add-card" data-id="${esc(id)}">${I.slab}<span>${L.gr.addThis}${user.graded.some((e) => e.id === id) ? ` · ${L.gr.youHave(user.graded.filter((e) => e.id === id).length)}` : ''}</span></button>`}
       ${c.official ? `<a class="btn-ghost" style="text-align:center;text-decoration:none" href="${esc(c.official)}" target="_blank" rel="noopener">${L.official}</a>` : ''}
       ${q > 0 && p.trend ? `<p class="note num" style="text-align:center">${L.worth(q, eur(valueOf(id)))}${paidOf(id) != null ? ` · ${L.boughtFor(eur(q * paidOf(id)))}` : ''}</p>` : ''}

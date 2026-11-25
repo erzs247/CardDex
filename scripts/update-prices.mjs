@@ -90,7 +90,8 @@ for (const c of catalog.cards) if (c.cardmarket?.idProduct && owner.get(c.cardma
 console.log(`${shared} cartes partagent le produit Cardmarket d'une autre carte : pas de prix pour elles.`);
 
 // deuxième source : TCGplayer converti en euros (scripts/update-tcgplayer.mjs, chaque lundi)
-const tcg = existsSync(join(root, 'data/tcgplayer.json')) ? readJson('data/tcgplayer.json').prices ?? {} : {};
+const tcgFile = existsSync(join(root, 'data/tcgplayer.json')) ? readJson('data/tcgplayer.json') : {};
+const tcg = tcgFile.prices ?? {}, tcgIds = tcgFile.ids ?? {};
 const round = (v) => Math.round(v * 100) / 100;
 
 const prices = {};
@@ -105,7 +106,7 @@ for (const c of catalog.cards) {
     const hs = histOf(c.set);
     const h = (hs[c.id] ?? []).filter(([d]) => d !== today);
     h.push([today, tp]); hs[c.id] = h;
-    prices[c.id] = { trend: tp, tcg: tp, src: 't' };
+    prices[c.id] = { trend: null, cm: null, tcg: tp, ...(tcgIds[c.id] ? { tid: tcgIds[c.id] } : {}) };
     continue;
   }
   const holoOnly = !num(g.trend) && !num(g.avg) && !!rev(g, 'trend');
@@ -113,10 +114,10 @@ for (const c of catalog.cards) {
   const cm = f('trend') ?? f('avg') ?? f('low');
   if (cm == null && !tp) continue;
   priced++;
-  // cote affichée : moyenne Cardmarket + TCGplayer quand les deux existent
-  const trend = cm != null && tp ? round((cm + tp) / 2) : cm ?? tp;
+  // trend / cm = Cardmarket (éditions FR et JP) ; mix = moyenne Cardmarket + TCGplayer (édition EN, calculée dans l'appli)
+  const trend = cm ?? null;
   if (cm != null && tp) mixed++;
-  const p = { trend, cm, tcg: tp, low: f('low'), avg: f('avg'), avg1: f('avg1'), avg7: f('avg7'), avg30: f('avg30') };
+  const p = { trend, cm, tcg: tp, mix: cm != null && tp ? round((cm + tp) / 2) : null, tid: tcgIds[c.id], low: f('low'), avg: f('avg'), avg1: f('avg1'), avg7: f('avg7'), avg30: f('avg30') };
   if (holoOnly) p.foil = true; else if (rev(g, 'trend')) p.trendFoil = rev(g, 'trend');
   for (const k of Object.keys(p)) if (p[k] == null) delete p[k];
   const hs = histOf(c.set);
@@ -129,7 +130,7 @@ for (const c of catalog.cards) {
   // le premier mois, la courbe commence par les moyennes 30 j / 7 j / 1 j de Cardmarket (note sous le graphique)
   if (h.length < 34) p.seeded = true;
   h = h.filter(([d]) => d !== today);
-  h.push([today, trend]);
+  h.push([today, trend ?? tp]);
   hs[c.id] = h;
   prices[c.id] = p;
 }

@@ -1302,3 +1302,4 @@ body::before { background: var(--bg); }
 .set-row:hover, .set-tile:hover, .list-card:hover { border-color: var(--accent); box-shadow: 0 6px 22px -10px rgb(111 143 230 / .7); }
 .set-row.done, .set-tile.done { border-color: var(--accent); box-shadow: 0 0 22px -8px var(--accent); }
 .list-desc { text-shadow: none; }
+.tcg-btn { display: block; text-align: center; text-decoration: none; margin-top: 8px; }
