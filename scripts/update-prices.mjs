@@ -50,19 +50,64 @@ try {
   console.warn(`Guide Cardmarket indisponible (${e.message}) : prix de TCGdex seulement.`);
 }
 
-// Extension Cardmarket de chaque carte (liste des produits) : le bouton Cardmarket ouvre la série filtrée sur la carte
+// Rattachement des cartes aux produits Cardmarket, à partir de la liste publique des produits.
+// Un produit s'appelle « Rayquaza EX [Dragon Pulse | Dragon Burst] » : pas de numéro, et les versions d'une même carte
+// (normale, pleine illustration, secrète…) portent le même nom. Dans une extension, Cardmarket les crée dans l'ordre
+// des numéros : la n-ième version (par numéro de produit) va à la n-ième carte du même nom (par numéro de carte).
+// L'extension d'une série vient des liens déjà fournis par TCGdex ; pour une série toute neuve sans lien, on prend
+// l'extension libre dont les noms de cartes correspondent le mieux.
 try {
   const r = dir ? null : await fetch(config.cardmarket.productsUrl.replace('{idGame}', idGame));
   const products = r?.ok ? (await r.json()).products : [];
-  const expOf = new Map(products.map((p) => [p.idProduct, p.idExpansion]));
-  // aperçu du format des produits (journal de l'Action) : sert à relier les cartes par leur nom Cardmarket
-  console.log('Exemples de produits :', JSON.stringify(products.filter((p) => [4328, 6704, 1649].includes(p.idExpansion)).slice(0, 12)));
-  let n = 0;
-  for (const c of catalog.cards) {
-    const e = expOf.get(c.cardmarket?.idProduct);
-    if (e && c.cardmarket.idExpansion !== e) { c.cardmarket.idExpansion = e; n++; }
+  if (products.length) {
+    const key = (n) => String(n ?? '').split(' [')[0].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+    const expOf = new Map(products.map((p) => [p.idProduct, p.idExpansion]));
+    const byExp = new Map();
+    for (const p of products) { if (!byExp.has(p.idExpansion)) byExp.set(p.idExpansion, []); byExp.get(p.idExpansion).push(p); }
+    const cardsBySet = new Map();
+    for (const c of catalog.cards) if (!c.id.startsWith('J-')) { if (!cardsBySet.has(c.set)) cardsBySet.set(c.set, []); cardsBySet.get(c.set).push(c); }
+    // extension de chaque série (vote des liens TCGdex)
+    const setExp = new Map(), claimed = new Set();
+    for (const [set, list] of cardsBySet) {
+      const votes = new Map();
+      for (const c of list) { const e = expOf.get(c.cardmarket?.idProduct); if (e) votes.set(e, (votes.get(e) ?? 0) + 1); }
+      const best = [...votes].sort((x, y) => y[1] - x[1])[0];
+      if (best) { setExp.set(set, best[0]); claimed.add(best[0]); }
+    }
+    for (const [set, list] of cardsBySet) {
+      if (setExp.has(set) || list.length < 5) continue;
+      const names = new Set(list.map((c) => key(c.nameEn ?? c.name)));
+      let best = null, score = 0;
+      for (const [e, ps] of byExp) {
+        if (claimed.has(e)) continue;
+        const hit = ps.filter((p) => names.has(key(p.name))).length / Math.max(ps.length, list.length);
+        if (hit > score) { score = hit; best = e; }
+      }
+      if (best && score >= 0.6) { setExp.set(set, best); claimed.add(best); console.log(`Série ${set} reliée à l'extension Cardmarket ${best} (${Math.round(score * 100)} % des noms).`); }
+    }
+    const numKey = (n) => { const m = String(n).match(/^(\D*)(\d+)(.*)$/); return m ? [m[1], Number(m[2]), m[3]] : [String(n), 0, '']; };
+    const byNumber = (a, b) => { const x = numKey(a.number), y = numKey(b.number); return x[0].localeCompare(y[0]) || x[1] - y[1] || x[2].localeCompare(y[2]); };
+    let linked = 0, changed = 0;
+    for (const [set, e] of setExp) {
+      const groupsP = new Map(), groupsC = new Map();
+      for (const p of byExp.get(e) ?? []) { const k = key(p.name); if (!groupsP.has(k)) groupsP.set(k, []); groupsP.get(k).push(p); }
+      for (const c of cardsBySet.get(set)) { const k = key(c.nameEn ?? c.name); if (!groupsC.has(k)) groupsC.set(k, []); groupsC.get(k).push(c); }
+      for (const [k, cs] of groupsC) {
+        const ps = (groupsP.get(k) ?? []).sort((a, b) => a.idProduct - b.idProduct);
+        if (!ps.length || ps.length !== cs.length) continue; // nombre de versions différent : on garde le lien TCGdex
+        cs.sort(byNumber).forEach((c, i) => {
+          const id = ps[i].idProduct;
+          if (c.cardmarket?.idProduct !== id) changed++;
+          c.cardmarket = { idProduct: id, idExpansion: e };
+          linked++;
+        });
+      }
+      // les autres cartes de la série gardent leur lien TCGdex, avec l'extension
+      for (const c of cardsBySet.get(set)) if (c.cardmarket?.idProduct && !c.cardmarket.idExpansion) c.cardmarket.idExpansion = e;
+    }
+    writeFileSync(join(root, 'data/catalog.json'), JSON.stringify(catalog));
+    console.log(`Cardmarket : ${setExp.size} séries reliées, ${linked} cartes rattachées par nom (${changed} liens corrigés).`);
   }
-  if (n) { writeFileSync(join(root, 'data/catalog.json'), JSON.stringify(catalog)); console.log(`${n} cartes rattachées à leur extension Cardmarket.`); }
 } catch (e) { console.warn(`Liste des produits Cardmarket indisponible (${e.message}).`); }
 
 const histDir = join(root, 'data/history');
