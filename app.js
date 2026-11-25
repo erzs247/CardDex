@@ -767,7 +767,7 @@ function cmUrl(card) {
   if (card.cardmarket?.path) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/${card.cardmarket.path}?language=${languageIds[printedIn]}`, exact: true };
   const nm = encodeURIComponent(card.nameEn ?? card.name);
   // extension connue (relevée par update-prices.mjs) : liste de la série filtrée sur le nom de la carte
-  if (card.cardmarket?.idExpansion) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Singles?idExpansion=${card.cardmarket.idExpansion}&searchString=${nm}`, exact: true };
+  if (card.cardmarket?.idExpansion) return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${nm}&idExpansion=${card.cardmarket.idExpansion}&mode=gallery`, exact: false };
   return { url: `https://www.cardmarket.com/${lang}/${gameSlug}/Products/Search?searchString=${nm}`, exact: false };
 }
 

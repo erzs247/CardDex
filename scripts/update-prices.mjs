@@ -74,9 +74,25 @@ const histOf = (set) => {
   return histories.get(set);
 };
 
+// TCGdex rattache parfois plusieurs cartes d'une série au même produit Cardmarket (ex. la version normale et la
+// version pleine illustration). Le produit est gardé pour la carte au plus petit numéro ; les autres n'ont pas de prix
+// plutôt qu'un prix faux.
+const num_ = (n) => parseInt(String(n).replace(/\D/g, ''), 10) || 0;
+const owner = new Map();
+for (const c of catalog.cards) {
+  const id = c.cardmarket?.idProduct;
+  if (!id) continue;
+  const o = owner.get(id);
+  if (!o || num_(c.number) < num_(o.number)) owner.set(id, c);
+}
+let shared = 0;
+for (const c of catalog.cards) if (c.cardmarket?.idProduct && owner.get(c.cardmarket.idProduct) !== c) { c.cardmarket.shared = true; shared++; }
+console.log(`${shared} cartes partagent le produit Cardmarket d'une autre carte : pas de prix pour elles.`);
+
 const prices = {};
 let priced = 0;
 for (const c of catalog.cards) {
+  if (c.cardmarket?.shared) continue;
   const g = guide?.get(c.cardmarket?.idProduct) ?? seeds[c.id];
   if (!g) continue;
   const holoOnly = !num(g.trend) && !num(g.avg) && !!rev(g, 'trend');
