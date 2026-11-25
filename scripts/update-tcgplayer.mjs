@@ -24,8 +24,8 @@ try {
 const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0 ? v : null);
 // prix de référence TCGplayer : « market price » de la version normale, sinon holo, sinon reverse, sinon la première trouvée
 function pick(tp) {
-  if (!tp || typeof tp !== 'object') return null;
   pick.pid = null;
+  if (!tp || typeof tp !== 'object') return null;
   for (const v of Object.values(tp)) if (v && typeof v === 'object' && v.productId) { pick.pid = v.productId; break; }
   const order = ['normal', 'holofoil', 'holo', 'unlimited', 'unlimitedHolofoil', '1stEdition', '1stEditionHolofoil', 'reverse-holofoil', 'reverseHolofoil', 'reverse'];
   const variants = Object.keys(tp).filter((k) => tp[k] && typeof tp[k] === 'object');
@@ -39,7 +39,7 @@ function pick(tp) {
 
 const todo = catalog.cards.filter((c) => c.languages?.includes('en') && !c.id.startsWith('J-')).slice(0, limit);
 console.log(`TCGplayer : ${todo.length} cartes anglaises à relever (1 $ = ${(1 / usdPerEur).toFixed(4)} €).`);
-const prices = {}, ids = { ...(old.ids ?? {}) };
+const prices = {}, ids = {};
 let i = 0, found = 0, done = 0;
 await Promise.all(Array.from({ length: 8 }, async () => {
   while (i < todo.length) {
