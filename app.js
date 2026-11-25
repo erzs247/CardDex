@@ -65,7 +65,7 @@ const TEXT = {
       mineNote: 'Tes cartes et ton scellé, toutes éditions (FR, EN, JP). Les hausses et baisses en € comptent tous tes exemplaires.', wishNote: 'Les cartes de tes souhaits.',
     },
     risers: 'Plus fortes hausses sur 7 jours', fallers: 'Plus fortes baisses sur 7 jours', priciest: 'Cartes les plus chères', noHistory: 'Pas encore assez d\'historique.',
-    trend: 'Tendance Cardmarket', noPrice: 'Prix à venir', over30: 'sur 30 jours', removeCopy: 'Retirer un exemplaire', addCopy: 'Ajouter un exemplaire', copies: 'Exemplaires possédés',
+    trend: 'Cote', noPrice: 'Prix à venir', over30: 'sur 30 jours', removeCopy: 'Retirer un exemplaire', addCopy: 'Ajouter un exemplaire', copies: 'Exemplaires possédés',
     wishBtn: 'Liste de souhaits', ownBtn: 'Je possède cette carte', from: 'À partir de', avg7: 'Moy. 7 j', avg30: 'Moy. 30 j', foil: 'Foil',
     curve: 'Courbe de prix', seeded: 'Les premiers points sont les moyennes 30 j, 7 j et 1 j de Cardmarket ; ensuite un relevé par jour.',
     cmView: 'Voir sur Cardmarket', cmSearch: 'Rechercher sur Cardmarket', official: 'Fiche officielle (règles, versions)', art: (a) => `Illustration : ${a}`,
@@ -303,7 +303,7 @@ const TEXT = {
       mineNote: 'Your cards and sealed products, in French and English. Gains and losses in € count all your copies.', wishNote: 'The cards in your wishlist.',
     },
     risers: 'Biggest risers over 7 days', fallers: 'Biggest fallers over 7 days', priciest: 'Most expensive cards', noHistory: 'Not enough history yet.',
-    trend: 'Cardmarket trend', noPrice: 'No price yet', over30: 'over 30 days', removeCopy: 'Remove a copy', addCopy: 'Add a copy', copies: 'Copies owned',
+    trend: 'Price', noPrice: 'No price yet', over30: 'over 30 days', removeCopy: 'Remove a copy', addCopy: 'Add a copy', copies: 'Copies owned',
     wishBtn: 'Wishlist', ownBtn: 'I own this card', from: 'From', avg7: '7-day avg', avg30: '30-day avg', foil: 'Foil',
     curve: 'Price history', seeded: 'The first points are Cardmarket\'s 30-day, 7-day and 1-day averages; after that, one reading per day.',
     cmView: 'View on Cardmarket', cmSearch: 'Search on Cardmarket', official: 'Official card page (rules, versions)', art: (a) => `Art: ${a}`,
@@ -1444,7 +1444,7 @@ function openCard(id, keepNav) {
           ${stats ? `<span class="sub num">${stats}</span>` : ''}
           ${enOnly ? `<span class="sub">${L.enOnly(enOnly)}</span>` : ''}
           ${!sealedItem ? langsOf(id).filter((l) => okey(id, l) !== okey(id) && qty(id, l)).map((l) => `<span class="sub other-copies">${L.otherCopies(qty(id, l), LANG_TAG[l])}</span>`).join('') : ''}
-          <div class="big-price num"><small>${isExtra(c) ? L.ex.estimate : L.trend}${p.foil ? ` · <span class="foil">${L.foil}</span>` : ''}</small>${p.trend != null ? eur(p.trend) : `<span style="font-size:18px;color:var(--muted)">${L.noPrice}</span>`}</div>
+          <div class="big-price num"><small>${isExtra(c) ? L.ex.estimate : L.trend}${!isExtra(c) && p.trend != null ? ` · ${p.cm != null && p.tcg != null ? (lang === 'en' ? 'Cardmarket + TCGplayer average' : 'moyenne Cardmarket + TCGplayer') : p.src === 't' ? 'TCGplayer (US)' : 'Cardmarket'}` : ''}${p.foil ? ` · <span class="foil">${L.foil}</span>` : ''}</small>${p.trend != null ? eur(p.trend) : `<span style="font-size:18px;color:var(--muted)">${L.noPrice}</span>`}</div>
           ${ch != null ? `<span class="delta num ${ch >= 0 ? 'up' : 'down'}">${pct(ch)} ${L.over30}</span>` : ''}
           <div class="detail-actions">
             <div class="stepper" role="group" aria-label="${L.copies}">
@@ -1470,13 +1470,17 @@ function openCard(id, keepNav) {
         <input id="cardPaid" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0,00" value="${paidOf(id) ?? ''}" data-paid-id="${esc(id)}">
         <span class="paid-diff num" id="paidDiff">${paidOf(id) != null ? (p.trend != null ? `${L.paidVs} ${diffHtml(paidDiff(id))}` : L.noPrice) : `<span class="muted">${L.paidHint}</span>`}</span>
       </div>` : ''}
-      ${p.trend != null && !isExtra(c) ? `<div class="stats">
+      ${p.cm != null && p.tcg != null && !isExtra(c) ? `<div class="stats">
+        <div class="stat"><small>Cardmarket</small><b class="num">${eur(p.cm)}</b></div>
+        <div class="stat"><small>TCGplayer (US)</small><b class="num">${eur(p.tcg)}</b></div>
+      </div>` : ''}
+      ${p.trend != null && !isExtra(c) && p.src !== 't' ? `<div class="stats">
         <div class="stat"><small>${L.from}</small><b class="num">${eur(p.low)}</b></div>
         <div class="stat"><small>${L.avg7}</small><b class="num">${eur(p.avg7)}</b></div>
         <div class="stat"><small>${L.avg30}</small><b class="num">${eur(p.avg30)}</b></div>
       </div>` : ''}
       <section class="panel" ${isExtra(c) ? 'hidden' : ''}>
-        <h3>${L.curve} <small>Cardmarket${priceFile.updatedAt ? ` · ${fmt.date.format(parseDay(priceFile.updatedAt))}` : ''}</small></h3>
+        <h3>${L.curve} <small>${p.tcg != null ? 'Cardmarket + TCGplayer' : 'Cardmarket'}${priceFile.updatedAt ? ` · ${fmt.date.format(parseDay(priceFile.updatedAt))}` : ''}</small></h3>
         <div class="ranges" id="cardRanges"></div>
         <div class="chart" id="cardChart"></div>
         ${p.seeded && (p.history?.length ?? 0) > 1 ? `<p class="note">${L.seeded}</p>` : ''}

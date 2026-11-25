@@ -89,18 +89,34 @@ let shared = 0;
 for (const c of catalog.cards) if (c.cardmarket?.idProduct && owner.get(c.cardmarket.idProduct) !== c) { c.cardmarket.shared = true; shared++; }
 console.log(`${shared} cartes partagent le produit Cardmarket d'une autre carte : pas de prix pour elles.`);
 
+// deuxième source : TCGplayer converti en euros (scripts/update-tcgplayer.mjs, chaque lundi)
+const tcg = existsSync(join(root, 'data/tcgplayer.json')) ? readJson('data/tcgplayer.json').prices ?? {} : {};
+const round = (v) => Math.round(v * 100) / 100;
+
 const prices = {};
-let priced = 0;
+let priced = 0, mixed = 0;
 for (const c of catalog.cards) {
-  if (c.cardmarket?.shared) continue;
-  const g = guide?.get(c.cardmarket?.idProduct) ?? seeds[c.id];
-  if (!g) continue;
+  const tp = num(tcg[c.id]);
+  const g = c.cardmarket?.shared ? null : guide?.get(c.cardmarket?.idProduct) ?? seeds[c.id];
+  if (!g && !tp) continue;
+  if (!g) {
+    // seulement TCGplayer
+    priced++;
+    const hs = histOf(c.set);
+    const h = (hs[c.id] ?? []).filter(([d]) => d !== today);
+    h.push([today, tp]); hs[c.id] = h;
+    prices[c.id] = { trend: tp, tcg: tp, src: 't' };
+    continue;
+  }
   const holoOnly = !num(g.trend) && !num(g.avg) && !!rev(g, 'trend');
   const f = (k) => (holoOnly ? rev(g, k) : num(g[k]));
-  const trend = f('trend') ?? f('avg') ?? f('low');
-  if (trend == null) continue;
+  const cm = f('trend') ?? f('avg') ?? f('low');
+  if (cm == null && !tp) continue;
   priced++;
-  const p = { trend, low: f('low'), avg: f('avg'), avg1: f('avg1'), avg7: f('avg7'), avg30: f('avg30') };
+  // cote affichée : moyenne Cardmarket + TCGplayer quand les deux existent
+  const trend = cm != null && tp ? round((cm + tp) / 2) : cm ?? tp;
+  if (cm != null && tp) mixed++;
+  const p = { trend, cm, tcg: tp, low: f('low'), avg: f('avg'), avg1: f('avg1'), avg7: f('avg7'), avg30: f('avg30') };
   if (holoOnly) p.foil = true; else if (rev(g, 'trend')) p.trendFoil = rev(g, 'trend');
   for (const k of Object.keys(p)) if (p[k] == null) delete p[k];
   const hs = histOf(c.set);
@@ -119,4 +135,4 @@ for (const c of catalog.cards) {
 }
 for (const [set, hs] of histories) writeFileSync(join(histDir, `${set}.json`), JSON.stringify(hs));
 writeFileSync(join(root, 'data/prices.json'), JSON.stringify({ demo: false, source: 'Cardmarket', currency: 'EUR', updatedAt: today, split: true, prices }));
-console.log(`${priced}/${catalog.cards.length} cartes avec un prix au ${today}.`);
+console.log(`${priced}/${catalog.cards.length} cartes avec un prix au ${today} (${mixed} en moyenne Cardmarket + TCGplayer).`);
